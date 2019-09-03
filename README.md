@@ -34,3 +34,13 @@ d(x, y) = d(y, x)
 d(x, y) + d(y, z) ≥ d(x, z)
 ∀ (x, t) ∃! y | d(x, y) = t
 ```
+
+## BST Subtree Division
+
+Kademlia treats nodes as leaves in a binary tree, where each nodes 
+position is determined by the shortest unique prefix of its ID. For any
+given node, the binary tree is divided into a series of succesively lower
+subtrees which don't contain the node. The algorithm makes sure the node
+knows at least one other node in each of the subtrees (if the subtree has
+a node). This ensures that all nodes can reach each other by "asking" the
+known node in the relevant subtree.
