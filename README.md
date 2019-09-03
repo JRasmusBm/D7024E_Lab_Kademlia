@@ -37,10 +37,28 @@ d(x, y) + d(y, z) ≥ d(x, z)
 
 ## BST Subtree Division
 
-Kademlia treats nodes as leaves in a binary tree, where each nodes 
-position is determined by the shortest unique prefix of its ID. For any
-given node, the binary tree is divided into a series of succesively lower
-subtrees which don't contain the node. The algorithm makes sure the node
-knows at least one other node in each of the subtrees (if the subtree has
-a node). This ensures that all nodes can reach each other by "asking" the
-known node in the relevant subtree.
+Kademlia treats nodes as leaves in a binary tree, where each nodes position is
+determined by the shortest unique prefix of its ID. For any given node, the
+binary tree is divided into a series of successively lower subtrees which
+don't contain the node. The algorithm makes sure the node knows at least one
+other node in each of the subtrees (if the subtree has a node). This ensures
+that all nodes can reach each other by "asking" the known node in the relevant
+subtree.
+
+## _k_-bucket
+
+Each node keeps a list of _k_ other nodes, this list is known as the
+_k_-bucket.
+
+- Whenever the node interacts with a known node, it moves it to the head of
+  the list, resulting in a list sorted by last encounter.
+- Whenever the node encounters an untracked node, it attempts to add it to its
+  bucket.
+  - If the bucket is full, the tail of the list (the last seen node) is
+    pinged. If it is off-line, it is evicted and the new node is added,
+    otherwise no change is made to the bucket.
+  - If the bucket is not full, it is added to head of the list and will remain
+    in the bucket indefinitely unless evicted.
+
+> _k_ is chosen such that any collection of _k_ nodes are unlikely to fail
+> within an hour
