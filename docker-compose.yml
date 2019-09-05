@@ -1,0 +1,12 @@
+version: "3"
+services: 
+  node:
+    build: .
+    image: kademlia
+    command: ["./build/out.o"]
+    networks: 
+      - kademlia_network
+
+networks:
+  kademlia_network: 
+    driver: bridge
