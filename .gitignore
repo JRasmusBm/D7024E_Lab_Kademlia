@@ -1,2 +1,9 @@
 .tmux
 build/
+reload.sh
+*.aux
+*.bbl
+*.out
+*.blg
+*.log
+*.pdf
