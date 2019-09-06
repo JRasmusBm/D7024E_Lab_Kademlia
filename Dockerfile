@@ -6,6 +6,8 @@ WORKDIR /srv/node
 RUN apt-get update
 RUN apt-get install golang-go -y
 
+ENV GOPATH=/srv/node
+
 # Compile code
 ADD src ./src
 RUN go build -o ./build/out.o ./src/main.go
