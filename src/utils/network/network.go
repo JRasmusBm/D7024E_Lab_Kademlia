@@ -5,16 +5,31 @@ import (
 	"net"
 )
 
-func GetIP() (string, error) {
-	ifaces, err := net.Interfaces()
+type IP interface {
+	String() string
+	IsLoopback() bool
+	To4() IP
+}
+
+type Address interface {
+	IP() IP
+}
+
+type Interface interface {
+	Addrs() ([]Address, error)
+	FlagUp() net.Flags
+	FlagLoopback() net.Flags
+}
+
+func extractIP(ifaces []Interface, err error) (string, error) {
 	if err != nil {
 		return "", err
 	}
 	for _, iface := range ifaces {
-		if iface.Flags&net.FlagUp == 0 {
+		if iface.FlagUp() == 0 {
 			continue // interface down
 		}
-		if iface.Flags&net.FlagLoopback != 0 {
+		if iface.FlagLoopback() != 0 {
 			continue // loopback interface
 		}
 		addrs, err := iface.Addrs()
@@ -22,13 +37,7 @@ func GetIP() (string, error) {
 			return "", err
 		}
 		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
+			ip := addr.IP()
 			if ip == nil || ip.IsLoopback() {
 				continue
 			}
@@ -40,4 +49,13 @@ func GetIP() (string, error) {
 		}
 	}
 	return "", errors.New("are you connected to the network?")
+}
+
+func GetIP() (string, error) {
+	rawIfces, err := net.Interfaces()
+	ifaces := []Interface{}
+	for _, v := range rawIfces {
+		ifaces = append(ifaces, MkRealInterface(v))
+	}
+	return extractIP(ifaces, err)
 }
