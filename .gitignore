@@ -10,3 +10,4 @@ reload.sh
 src/github.com/
 src/golang.org/
 pkg/
+coverage
