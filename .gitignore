@@ -7,3 +7,6 @@ reload.sh
 *.blg
 *.log
 *.pdf
+src/github.com/
+src/golang.org/
+pkg/
