@@ -3,8 +3,9 @@ FROM ubuntu:18.04
 WORKDIR /srv/node
 
 # Install golang compiler/tools
-RUN apt-get update
-RUN apt-get install golang-go -y
+RUN apt-get update && \
+    apt-get install golang-go -y && \
+    apt-get install iputils-ping -y
 
 ENV GOPATH=/srv/node
 

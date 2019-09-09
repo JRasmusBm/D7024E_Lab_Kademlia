@@ -16,6 +16,9 @@ func main() {
 
 	var node *nodeutils.Node
 	node = new(nodeutils.Node)
-	node.IP = "127.0.0.1"
-	network.PingNode(node)
+	node.IP = "172.20.0.2"
+	
+    if network.PingNode(node) {
+        fmt.Println("Succesfully pinged!")
+    }
 }
