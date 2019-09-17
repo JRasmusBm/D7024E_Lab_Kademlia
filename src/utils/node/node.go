@@ -15,7 +15,7 @@ type Node struct {
 }
 
 // NewNode returns a new instance of a Node
-func NewNode(id *hashing.KademliaID, address string) Node {
+func NewNode(id *hashing.KademliaID, ip string) Node {
 	return Node{id, address, nil}
 }
 
