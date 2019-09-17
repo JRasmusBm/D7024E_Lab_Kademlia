@@ -14,7 +14,7 @@ type RoutingTable struct {
 // NewRoutingTable returns a new instance of a RoutingTable
 func NewRoutingTable(me Node) *RoutingTable {
 	routingTable := &RoutingTable{}
-	for i := 0; i < IDLength*8; i++ {
+	for i := 0; i < hashing.IDLength*8; i++ {
 		routingTable.buckets[i] = newBucket()
 	}
 	routingTable.me = me
@@ -29,19 +29,19 @@ func (routingTable *RoutingTable) AddNode(contact Node) {
 }
 
 // FindClosestNodes finds the count closest Nodes to the target in the RoutingTable
-func (routingTable *RoutingTable) FindClosestNodes(target *KademliaID, count int) []Node {
+func (routingTable *RoutingTable) FindClosestNodes(target *hashing.KademliaID, count int) []Node {
 	var candidates NodeCandidates
 	bucketIndex := routingTable.getBucketIndex(target)
 	bucket := routingTable.buckets[bucketIndex]
 
 	candidates.Append(bucket.GetNodeAndCalcDistance(target))
 
-	for i := 1; (bucketIndex-i >= 0 || bucketIndex+i < IDLength*8) && candidates.Len() < count; i++ {
+	for i := 1; (bucketIndex-i >= 0 || bucketIndex+i < hashing.IDLength*8) && candidates.Len() < count; i++ {
 		if bucketIndex-i >= 0 {
 			bucket = routingTable.buckets[bucketIndex-i]
 			candidates.Append(bucket.GetNodeAndCalcDistance(target))
 		}
-		if bucketIndex+i < IDLength*8 {
+		if bucketIndex+i < hashing.IDLength*8 {
 			bucket = routingTable.buckets[bucketIndex+i]
 			candidates.Append(bucket.GetNodeAndCalcDistance(target))
 		}
@@ -57,9 +57,9 @@ func (routingTable *RoutingTable) FindClosestNodes(target *KademliaID, count int
 }
 
 // getBucketIndex get the correct Bucket index for the KademliaID
-func (routingTable *RoutingTable) getBucketIndex(id *KademliaID) int {
+func (routingTable *RoutingTable) getBucketIndex(id *hashing.KademliaID) int {
 	distance := id.CalcDistance(routingTable.me.ID)
-	for i := 0; i < IDLength; i++ {
+	for i := 0; i < hashing.IDLength; i++ {
 		for j := 0; j < 8; j++ {
 			if (distance[i]>>uint8(7-j))&0x1 != 0 {
 				return i*8 + j
@@ -67,5 +67,5 @@ func (routingTable *RoutingTable) getBucketIndex(id *KademliaID) int {
 		}
 	}
 
-	return IDLength*8 - 1
+	return hashing.IDLength*8 - 1
 }

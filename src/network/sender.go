@@ -6,7 +6,7 @@ import (
 )
 
 func PingNode(node *nodeutils.Node) (ret bool) {
-	cmd := exec.Command("ping", node.IP, "-c", "3")
+	cmd := exec.Command("ping", node.Address, "-c", "3")
 	err := cmd.Run()
 	return err == nil
 }
