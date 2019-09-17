@@ -10,7 +10,7 @@ import (
 // stores the KademliaID, the ip address and the distance
 type Node struct {
 	ID       *hashing.KademliaID
-	Address  string
+	IP  string
 	distance *hashing.KademliaID
 }
 
