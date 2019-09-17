@@ -9,6 +9,8 @@ RUN apt-get update && \
 
 ENV GOPATH=/srv/node
 
+EXPOSE 80
+
 # Compile code
 ADD src ./src
 RUN go build -o ./build/out.o ./src/main.go
