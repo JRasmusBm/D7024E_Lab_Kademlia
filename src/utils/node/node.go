@@ -32,7 +32,7 @@ func (node *Node) Less(otherNode *Node) bool {
 
 // String returns a simple string representation of a Node
 func (node *Node) String() string {
-	return fmt.Sprintf(`node("%s", "%s")`, node.ID, node.Address)
+	return fmt.Sprintf(`node("%s", "%s")`, node.ID, node.IP)
 }
 
 // NodeCandidates definition
