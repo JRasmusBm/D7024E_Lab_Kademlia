@@ -5,9 +5,12 @@ import (
 	network "network"
 	nodeutils "utils/node"
 	"fmt"
+	"time"
 )
 
 func main() {
+	go network.CliApp()
+
 	ip, err := networkutils.GetIP()
 	if err != nil {
 		fmt.Println(err)
@@ -20,5 +23,10 @@ func main() {
 	
     if network.PingNode(node) {
         fmt.Println("Succesfully pinged!")
+    }
+
+	//while true-loop.
+	for {
+        time.Sleep(time.Second)
     }
 }
