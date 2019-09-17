@@ -1,14 +1,14 @@
-package routing
+package node
+
+import hashing "utils/hashing"
 
 const bucketSize = 20
-
-import "utils/node"
 
 // RoutingTable definition
 // keeps a refrence contact of me and an array of buckets
 type RoutingTable struct {
 	me      Node
-	buckets [IDLength * 8]*bucket
+	buckets [hashing.IDLength * 8]*bucket
 }
 
 // NewRoutingTable returns a new instance of a RoutingTable
