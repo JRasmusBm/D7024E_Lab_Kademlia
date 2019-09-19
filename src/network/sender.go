@@ -5,13 +5,18 @@ import (
 	"os/exec"
 	hashing "utils/hashing"
 	nodeutils "utils/node"
+	"net"
+	"utils/constants"
+	"fmt"
 )
 
-func Ping(node *nodeutils.Node, ch chan bool) (ret bool) {
-	cmd := exec.Command("ping", node.IP, "-c", "3")
-	err := cmd.Run()
-	ch <- err == nil
-	return
+func Ping(node *nodeutils.Node, ch chan bool) {
+	conn, _ := net.Dial("tcp", fmt.Sprintf("%s:%d", node.IP, constants.KADEMLIA_PORT))
+	fmt.Fprintf(conn, "PING")
+
+	msg, _ := bufio.NewReader(conn).ReadString('\n')
+
+	ch <- (msg == "PONG")
 }
 
 func Store(content string, ch chan *hashing.KademliaID) {
