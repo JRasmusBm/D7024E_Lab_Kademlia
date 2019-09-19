@@ -2,12 +2,11 @@ package network
 
 import (
 	"fmt"
-	"os/exec"
 	hashing "utils/hashing"
 	nodeutils "utils/node"
 	"net"
 	"utils/constants"
-	"fmt"
+	"bufio"
 )
 
 func Ping(node *nodeutils.Node, ch chan bool) {

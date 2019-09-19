@@ -6,6 +6,8 @@ import (
 	"time"
 	networkutils "utils/network"
 	nodeutils "utils/node"
+	"utils/hashing"
+	"network"
 )
 
 func main() {
@@ -19,15 +21,11 @@ func main() {
 	fmt.Println(ip)
 
 	var node *nodeutils.Node
-	node = new(nodeutils.Node)
-	node.IP = "172.20.0.2"
+	node = nodeutils.NewNode(hashing.NewRandomKademliaID(), networkutils.GetIP())
 
-	//while true-loop.
-	for {
-		cliVar := <- cliChannel
-		if cliVar == "exit" {
-			break
-		}
-		time.Sleep(time.Second)
-	}
+	var table nodeutils.RoutingTable
+	table = nodeutils.NewRoutingTable(node)
+
+	// Receiver will be busy waiting in the main thread.
+	network.receiver(table)
 }
