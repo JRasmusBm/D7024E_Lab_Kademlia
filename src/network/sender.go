@@ -1,12 +1,39 @@
 package network
 
 import (
-    nodeutils "utils/node"
+	"fmt"
 	"os/exec"
+	hashing "utils/hashing"
+	nodeutils "utils/node"
 )
 
-func PingNode(node *nodeutils.Node) (ret bool) {
+func Ping(node *nodeutils.Node, ch chan bool) (ret bool) {
 	cmd := exec.Command("ping", node.IP, "-c", "3")
 	err := cmd.Run()
-	return err == nil
+	ch <- err == nil
+	return
+}
+
+func Store(content string, ch chan bool) {
+	// hash := hashing.NewKademliaID(content)
+	ch <- false
+	return
+}
+
+func FindNode(id *hashing.KademliaID, ch chan *nodeutils.Node) {
+	fmt.Printf("Finding Node %s", id)
+	node := nodeutils.Node{IP: "0.0.0.0"}
+	ch <- &node
+	return
+}
+
+func FindValue(key *hashing.KademliaID, ch chan string) {
+	fmt.Printf("Finding Value %s", key)
+	ch <- "Random value"
+	return
+}
+
+func Join() {
+	fmt.Printf("Joining Kademlia")
+	return
 }

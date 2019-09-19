@@ -1,11 +1,13 @@
-package network
+package cli
 
 import (
+	"api"
 	"bytes"
 	"fmt"
 	"net"
-	networkutils "utils/network"
 	"os"
+	"utils/hashing"
+	networkutils "utils/network"
 )
 
 const (
@@ -87,9 +89,9 @@ func terminate() {
 }
 
 func putObject() {
-	fmt.Println("Uploading object...")
+	api.Store("hello")
 }
 
 func getObject() {
-	fmt.Println("Retrieving object...")
+	api.FindValue(hashing.NewRandomKademliaID())
 }

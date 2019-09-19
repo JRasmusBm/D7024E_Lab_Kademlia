@@ -1,6 +1,7 @@
 package hashing
 
 import (
+  "crypto/sha1"
 	"encoding/hex"
 	"math/rand"
 )
@@ -13,11 +14,12 @@ type KademliaID [IDLength]byte
 
 // NewKademliaID returns a new instance of a KademliaID based on the string input
 func NewKademliaID(data string) *KademliaID {
-	decoded, _ := hex.DecodeString(data)
+  src := []byte(data)
+  encoded := sha1.Sum(src)
 
 	newKademliaID := KademliaID{}
 	for i := 0; i < IDLength; i++ {
-		newKademliaID[i] = decoded[i]
+		newKademliaID[i] = encoded[i]
 	}
 
 	return &newKademliaID

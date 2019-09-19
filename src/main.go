@@ -1,15 +1,15 @@
 package main
 
 import (
-	networkutils "utils/network"
-	network "network"
-	nodeutils "utils/node"
+	cli "cli"
 	"fmt"
 	"time"
+	networkutils "utils/network"
+	nodeutils "utils/node"
 )
 
 func main() {
-	go network.CliApp()
+	go cli.CliApp()
 
 	ip, err := networkutils.GetIP()
 	if err != nil {
@@ -20,13 +20,9 @@ func main() {
 	var node *nodeutils.Node
 	node = new(nodeutils.Node)
 	node.IP = "172.20.0.2"
-	
-    if network.PingNode(node) {
-        fmt.Println("Succesfully pinged!")
-    }
 
 	//while true-loop.
 	for {
-        time.Sleep(time.Second)
-    }
+		time.Sleep(time.Second)
+	}
 }
