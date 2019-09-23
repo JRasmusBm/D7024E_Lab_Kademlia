@@ -8,25 +8,35 @@ import (
 	"fmt"
 	"utils/node"
 	"utils/hashing"
+	"os"
+	"strconv"
 )
 
-func Receiver(table *node.RoutingTable) {
-	ln, _ := net.Listen("tcp", fmt.Sprintf(":%d", constants.KADEMLIA_PORT))
+func Receiver(table *node.RoutingTable, ip string) {
+	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, constants.KADEMLIA_PORT))
+	if err != nil {
+		fmt.Println("Error listening:", err.Error())
+		os.Exit(1)
+	}
+	fmt.Println("Receiver listening on: " + ip + ":" + strconv.Itoa(constants.KADEMLIA_PORT))
 
 	for {
-		// Will block until connection is made.
+	// Will block until connection is made.
 		conn, _ := ln.Accept()
 
 		// Will block until message ending with newline (\n) is received.
-		msg, _ := bufio.NewReader(conn).ReadString('\n')
-
+		msg, _ := bufio.NewReader(conn).ReadString(';')
+		msg = strings.TrimRight(msg, ";")
+		
 		// Split string around spaces.
 		msg_split := strings.Split(msg, " ")
+
+		fmt.Println("Message received:", msg)
 
 		switch msg_split[0] {
 			case "PING": // Return PONG to verify that the request succeded.
 				// Syntax: PING
-				conn.Write([]byte("PONG"))
+				conn.Write([]byte("PONG;"))
 			case "FIND_NODE": // Return the x closest known nodes in a sequence separated by spaces.
 				// Syntax: FIND_NODE <id>
 				target := hashing.NewKademliaID(msg_split[1])

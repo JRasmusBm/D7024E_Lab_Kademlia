@@ -11,6 +11,8 @@ services:
   node:
     build: .
     image: kademlia
+    depends_on:
+      - "bootstrap_node"
     command: ["./build/out.o"]
     networks:
       - kademlia_network

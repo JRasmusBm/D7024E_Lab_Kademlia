@@ -7,14 +7,31 @@ import (
 	"net"
 	"utils/constants"
 	"bufio"
+	"os"
+	"strings"
 )
 
+func dial(node *nodeutils.Node) net.Conn {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", node.IP, constants.KADEMLIA_PORT))
+	if err != nil {
+		fmt.Println("Error:", err.Error())
+		os.Exit(1)
+	}
+
+	return conn
+}
+
 func Ping(node *nodeutils.Node, ch chan bool) {
-	conn, _ := net.Dial("tcp", fmt.Sprintf("%s:%d", node.IP, constants.KADEMLIA_PORT))
-	fmt.Fprintf(conn, "PING")
+	conn, := dial(node)
+	fmt.Fprintf(conn, "PING;")
 
-	msg, _ := bufio.NewReader(conn).ReadString('\n')
-
+	msg, err := bufio.NewReader(conn).ReadString(';')
+	if err != nil {
+		fmt.Println("Error: ", err.Error())
+		os.Exit(1)
+	}
+	msg = strings.TrimRight(msg, ";")
+	
 	ch <- (msg == "PONG")
 }
 
@@ -24,10 +41,9 @@ func Store(content string, ch chan *hashing.KademliaID) {
 	return
 }
 
-func FindNode(id *hashing.KademliaID, ch chan *nodeutils.Node) {
+func FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *nodeutils.Node) {
 	fmt.Printf("Finding Node %s", id)
-	node := nodeutils.Node{IP: "0.0.0.0"}
-	ch <- &node
+	conn = dial(node)
 	return
 }
 
