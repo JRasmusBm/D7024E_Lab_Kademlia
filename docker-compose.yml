@@ -1,5 +1,13 @@
 version: "3"
 services:
+  bootstrap_node:
+    build: .
+    image: kademlia
+    command: ["./build/out.o"]
+    networks:
+      kademlia_network:
+        ipv4_address: 172.19.1.2
+
   node:
     build: .
     image: kademlia
@@ -15,7 +23,9 @@ services:
     command: sh -c "go test -coverprofile cover.out ./... ; 
       go tool cover -html=cover.out -o coverage/cover.html"
 
-
 networks:
   kademlia_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.1.0/24
