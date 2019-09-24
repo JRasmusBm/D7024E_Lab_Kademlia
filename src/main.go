@@ -1,7 +1,7 @@
 package main
 
 import (
-	cli "cli"
+	cli "cli/server"
 	"fmt"
 	"time"
 	networkutils "utils/network"
@@ -9,7 +9,8 @@ import (
 )
 
 func main() {
-	go cli.CliApp()
+	cliChannel := make(chan string)
+	go cli.CliServer(cliChannel)
 
 	ip, err := networkutils.GetIP()
 	if err != nil {
@@ -23,6 +24,10 @@ func main() {
 
 	//while true-loop.
 	for {
+		cliVar := <- cliChannel
+		if cliVar == "exit" {
+			break
+		}
 		time.Sleep(time.Second)
 	}
 }
