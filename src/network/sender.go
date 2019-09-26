@@ -22,7 +22,7 @@ func dial(node *nodeutils.Node) net.Conn {
 }
 
 func Ping(node *nodeutils.Node, ch chan bool) {
-	conn, := dial(node)
+	conn := dial(node)
 	fmt.Fprintf(conn, "PING;")
 
 	msg, err := bufio.NewReader(conn).ReadString(';')
@@ -41,10 +41,22 @@ func Store(content string, ch chan *hashing.KademliaID) {
 	return
 }
 
-func FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *nodeutils.Node) {
+func FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *[constants.CLOSESTNODES]nodeutils.Node) {
 	fmt.Printf("Finding Node %s", id)
-	conn = dial(node)
-	return
+	conn := dial(node)
+
+	fmt.Fprintf(conn, "FIND_NODE %s;", id)
+	msg, err := bufio.NewReader(conn).ReadString(';')
+	if err != nil {
+		fmt.Println("Error", err.Error())
+		os.Exit(1)
+	}
+
+	msg = strings.TrimRight(msg, ";")
+
+	nodes := nodeutils.FromStrings(msg)
+
+	ch <- nodes
 }
 
 func FindValue(key *hashing.KademliaID, ch chan string) {

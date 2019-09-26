@@ -4,6 +4,7 @@ import (
 	"network"
 	hashing "utils/hashing"
 	nodeutils "utils/node"
+	"utils/constants"
 )
 
 //func Ping(node *nodeutils.Node) (ret bool) {
@@ -21,11 +22,12 @@ func Store(content string) (ret *hashing.KademliaID) {
 	return key
 }
 
-func FindNode(id *hashing.KademliaID) (ret *nodeutils.Node) {
-	ch := make(chan *nodeutils.Node)
-	go network.FindNode(id, ch)
-	node := <-ch
-	return node
+func FindNode(node *nodeutils.Node, id *hashing.KademliaID) (ret *[constants.CLOSESTNODES]nodeutils.Node) {
+	ch := make(chan *[constants.CLOSESTNODES]nodeutils.Node)
+	go network.FindNode(node, id, ch)
+	nodes := <-ch
+	fmt.Println("Found closest nodes.")
+	return nodes
 }
 
 func FindValue(key *hashing.KademliaID) (ret string) {

@@ -27,15 +27,6 @@ func main() {
 		// TODO: Handle case when bootstrap node
 	} else {
 		// TODO: Handle case when "normal" node
-		fmt.Println("Hello 1")
-		channel := make(chan bool)
-		go network.Ping(nil, channel, "172.19.1.2")
-		result := <- channel
-		if result {
-			fmt.Println("PING successful!")
-		} else {
-			fmt.Println("PING failed!")
-		}
 	}
 
 	// Receiver will be busy waiting in the main thread.
