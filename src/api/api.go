@@ -7,13 +7,13 @@ import (
 	"utils/constants"
 )
 
-//func Ping(node *nodeutils.Node) (ret bool) {
-//	ch := make(chan bool)
-//	go network.Ping(node, ch)
-//	ok := <-ch
-//	fmt.Println("Ping successful: ", ok)
-//	return ok
-//}
+func Ping(node *nodeutils.Node) (ret bool) {
+	ch := make(chan bool)
+	go network.Ping(node, ch)
+	ok := <-ch
+	fmt.Println("Ping successful: ", ok)
+	return ok
+}
 
 func Store(content string) (ret *hashing.KademliaID) {
 	ch := make(chan *hashing.KademliaID)
