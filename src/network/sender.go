@@ -14,9 +14,9 @@ func Ping(node *nodeutils.Node, ch chan bool) (ret bool) {
 	return
 }
 
-func Store(content string, ch chan bool) {
-	// hash := hashing.NewKademliaID(content)
-	ch <- false
+func Store(content string, ch chan *hashing.KademliaID) {
+	hash := hashing.NewKademliaID(content)
+	ch <- hash
 	return
 }
 

@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-
 func main() {
 	cliClient()
 }
@@ -30,7 +29,7 @@ func cliClient() {
 		text, _ := reader.ReadString('\n')
 		messageSender(conn, text)
 		messageReceiver(conn, text)
-		slicedText := strings.SplitN(text," ",2)
+		slicedText := strings.SplitN(text, " ", 2)
 		if strings.TrimSpace(slicedText[0]) == "close" {
 			return
 		}
@@ -43,11 +42,11 @@ func cliClient() {
 // Fprintf sends information through the connection to the node.
 // checks if it's to send the entire command or in the case of 'put' read the file contents and send.
 func messageSender(conn net.Conn, text string) {
-	slicedText := strings.SplitN(text, " ",2)
+	slicedText := strings.SplitN(text, " ", 2)
 	if strings.TrimSpace(slicedText[0]) == "put" {
 		content, err := ioutil.ReadFile(strings.TrimSpace(slicedText[1]))
 		errorHelper(err)
-		fmt.Fprintf(conn, slicedText[0] + " " + string(content) + "\n")
+		fmt.Fprintf(conn, slicedText[0]+" "+string(content)+"\n")
 	} else {
 		fmt.Fprintf(conn, text+"\n")
 	}
@@ -57,13 +56,13 @@ func messageSender(conn net.Conn, text string) {
 // The buffers delimiter is '\n', so when sending several lines of information a loop is required.
 // Or it will only read the first line and assume it's done.
 func messageReceiver(conn net.Conn, text string) {
-	slicedText := strings.SplitN(text," ",2)
+	slicedText := strings.SplitN(text, " ", 2)
 	command := slicedText[0]
 	if strings.TrimSpace(command) == "help" {
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 		message = strings.Replace(message, "\n", "", -1)
 		slicedMessage := strings.Split(message, ",")
-		for i := 0; i<len(slicedMessage); i++ {
+		for i := 0; i < len(slicedMessage); i++ {
 			fmt.Print("->: " + slicedMessage[i] + "\n")
 		}
 	} else {

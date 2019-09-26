@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"net"
 	"os"
-	networkutils "utils/network"
-	"strings"
 	"strconv"
+	"strings"
+	hashing "utils/hashing"
+	networkutils "utils/network"
+	nodeutils "utils/node"
 )
 
 const (
 	ConnPort = "80"
 	ConnType = "tcp"
 )
-
-
 
 // Listens to its own IP on port 80
 // Attempts to establish a connection to the incoming connection request.
@@ -46,7 +46,7 @@ func handleRequest(conn net.Conn, cliChannel chan string) (st string) {
 	for {
 		netData, err := bufio.NewReader(conn).ReadString('\n')
 		errorPrinter(err)
-		slicedMessage := strings.SplitN(netData," ",2)
+		slicedMessage := strings.SplitN(netData, " ", 2)
 		s := commandHandler(conn, cliChannel, slicedMessage)
 		if s == "close" {
 			break
@@ -80,8 +80,8 @@ func commandHandler(conn net.Conn, cliChannel chan string, slicedMessage []strin
 		return s
 	} else if strings.TrimSpace(slicedMessage[0]) == "get" {
 		getObject(conn, slicedMessage[1])
-	} else if strings.TrimSpace(slicedMessage[0]) == "forget" {
-		forgetTTL(conn, slicedMessage[1])
+		// } else if strings.TrimSpace(slicedMessage[0]) == "forget" {
+		// 	forgetTTL(conn, slicedMessage[1])
 	} else if strings.TrimSpace(slicedMessage[0]) == "put" {
 		putObject(conn, slicedMessage[1])
 	} else if strings.TrimSpace(slicedMessage[0]) == "ping" {
@@ -109,7 +109,7 @@ func availableCommands(conn net.Conn) {
 		"'get hashNr' hashNr is an argument and returns its stored value if one exists.," +
 		"'forget hashNr' NOT YET IMPLEMENTED.," +
 		"'ping ipAddr' instruct the node to try and ping the given ipAddr.," +
-		"'put filename' reads the contents of the given file and attempts to store it on a kademlia node.," + 
+		"'put filename' reads the contents of the given file and attempts to store it on a kademlia node.," +
 		"Example: put test.txt\n"))
 	errorPrinter(err)
 }
@@ -122,33 +122,32 @@ func terminate(cliChannel chan string) {
 
 // Should return its hash if successfully restored, currently only returns wether the store was successful or not.
 func putObject(conn net.Conn, value string) {
-	ok := api.Store(value)
-	_, err := conn.Write([]byte("successfully stored: " + strconv.FormatBool(ok) + "\n"))
+	key := api.Store(value)
+  _, err := conn.Write([]byte("Stored at: " + key.String()))
 	errorPrinter(err)
 }
 
-// NOT YET IMPLEMENTED FUNCTIONALITY
 func getObject(conn net.Conn, hashNr string) {
-	//api.FindValue(hashNr)
 	fmt.Println("Retreiving...")
-	_, err := conn.Write([]byte("You want to retrieve: " + hashNr + "\n"))
+  value := api.FindValue(hashing.ToKademliaID(hashNr))
+  _, err := conn.Write([]byte("Value: " + value))
 	errorPrinter(err)
 }
 
-// NOT YET IMPLEMENTED FUNCTIONALITY
 func ping(conn net.Conn, ipAddr string) {
-	//api.Ping(ipAddr)
 	fmt.Println("Pinging...")
-	_, err := conn.Write([]byte("You want to ping: " + ipAddr + "\n"))
+	node := nodeutils.Node{IP: ipAddr}
+  ok := api.Ping(&node)
+  _, err := conn.Write([]byte("Online: " + strconv.FormatBool(ok) + "\n"))
 	errorPrinter(err)
 }
 
 // NOT YET IMPLEMENTED FUNCTIONALITY
-func forgetTTL(conn net.Conn, hashNr string) {
-	fmt.Println("Stopping refresh...")
-	_, err := conn.Write([]byte("You want to stop refreshing: " + hashNr + "\n"))
-	errorPrinter(err)
-}
+// func forgetTTL(conn net.Conn, hashNr string) {
+// 	fmt.Println("Stopping refresh...")
+// 	_, err := conn.Write([]byte("You want to stop refreshing: " + hashNr + "\n"))
+// 	errorPrinter(err)
+// }
 
 // ERROR HELPERS
 func errorPrinter(err error) {

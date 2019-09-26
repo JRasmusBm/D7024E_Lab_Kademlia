@@ -1,7 +1,7 @@
 package hashing
 
 import (
-  "crypto/sha1"
+	"crypto/sha1"
 	"encoding/hex"
 	"math/rand"
 )
@@ -14,14 +14,23 @@ type KademliaID [IDLength]byte
 
 // NewKademliaID returns a new instance of a KademliaID based on the string input
 func NewKademliaID(data string) *KademliaID {
-  src := []byte(data)
-  encoded := sha1.Sum(src)
+	src := []byte(data)
+	encoded := sha1.Sum(src)
 
 	newKademliaID := KademliaID{}
 	for i := 0; i < IDLength; i++ {
 		newKademliaID[i] = encoded[i]
 	}
 
+	return &newKademliaID
+}
+
+func ToKademliaID(id string) *KademliaID {
+	idInBytes := id
+	newKademliaID := KademliaID{}
+	for i := 0; i < IDLength; i++ {
+		newKademliaID[i] = idInBytes[i]
+	}
 	return &newKademliaID
 }
 
@@ -55,7 +64,7 @@ func (kademliaID KademliaID) Equals(otherKademliaID *KademliaID) bool {
 	return true
 }
 
-// CalcDistance returns a new instance of a KademliaID that is built 
+// CalcDistance returns a new instance of a KademliaID that is built
 // through a bitwise XOR operation betweeen kademliaID and target
 func (kademliaID KademliaID) CalcDistance(target *KademliaID) *KademliaID {
 	result := KademliaID{}
