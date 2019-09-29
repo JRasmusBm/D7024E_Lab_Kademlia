@@ -14,5 +14,30 @@ for this project during the first sprint. For the backlog, see our Github.
 
 \textbf{Testing:} At least a 50\% testing coverage of the implementation.\\
 
-\textbf{Containers:} A network of at least 50 nodes must be spinned up by containers where each node is a seperate container.\\
+\textbf{Containers:} A network of at least 50 nodes must be spinned up by containers where each node is a seperate container.
+
+
+\subsubsection{Sprint 1 reflections}\label{sec:sprint-1-reflections}
+As this report is due 48 hours before the end of sprint 1 we have not fully completed all planned objectives at this point, but we are close to complete all objectives and might still do so before the actual end of sprint 1.\\
+
+\textbf{Containers:} We have a network of 50 nodes spinned up by containers and each node is in a seperate container. This objective is complete.\\
+
+\textbf{Testing:} We are continously adding tests to our code, this objective should be complete before the official end of sprint 1.\\
+
+\textbf{CLI:} We have a simple shell that can connect and communicate with a server in each node. The functionality itself is dependent on the RPCs and not fully operational at this point.\\
+
+\textbf{Objects and Networking:} These are our RPCs and require the most work. They are beginning to become operational but are still work in progress at this point.
+
+\subsection{Sprint 2}\label{sec:sprint-2}
+The plan is to implement all qualifying objectives except for concurrency after implementing any remaining mandatory objectives. For the backlog, see our Github.\footnote{\href{https://github.com/JRasmusBm/D7024E_Lab_Kademlia}{https://github.com/JRasmusBm/D7024E\_Lab\_Kademlia}}\\
+
+\textbf{Object expiration:} Implement Time-To-Live(TTL) functionality. When TTL expires the data object is silently deleted. But the TTL is reset every time the object is requested and transmitted.\\
+
+\textbf{Object expiration delay:} To prevent objects from expiring, the original node that uploaded the object sends a refresh command to reset the TTL without actually requesting the object. As long as the uploading node can contact the storing nodes, the object should never expire.\\
+
+\textbf{Forget CLI command:} The command takes the hashnr of the object that is to be removed. (By stopping the refresh of TTL).\\
+
+\textbf{RESTful application interface:} A restful HTTP interface so it may be integrated with web applications or other applications at some point. Implement POST-objects and GET-objects.\\
+
+\textbf{Testing:} At least a 80\% test coverage of the implementation.
 
