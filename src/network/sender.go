@@ -75,7 +75,11 @@ func FindValue(key *hashing.KademliaID, ch chan string) {
 	return
 }
 
-func Join() {
+func Join(node *nodeutils.Node) {
 	fmt.Printf("Joining Kademlia")
+	conn := dial(node)
+	fmt.Fprintf(conn, "JOIN " + node.String())
+
+	bufio.NewReader(conn).ReadString(';')
 	return
 }

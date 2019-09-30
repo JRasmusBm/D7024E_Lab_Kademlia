@@ -11,9 +11,6 @@ import (
 )
 
 func main() {
-	cliChannel := make(chan string)
-	go cli.CliServer(cliChannel)
-
 	ip, err := networkutils.GetIP()
 	if err != nil {
 		fmt.Println(err)
@@ -23,6 +20,11 @@ func main() {
 	node := nodeutils.NewNode(hashing.NewRandomKademliaID(), ip)
 	table := nodeutils.NewRoutingTable(node)
 
+	var addNode chan nodeutils.AddNodeOp
+	var findClosestNodes chan nodeutils.FindClosestNodesOp
+
+	go nodeutils.TableSynchronizer(table, addNode, findClosestNodes)
+
 	if ip == "172.19.1.2" {
 		// TODO: Handle case when bootstrap node
 	} else {
@@ -30,7 +32,11 @@ func main() {
 	}
 
 	// Start node receiver.
-	go network.Receiver(table, ip)
+	go network.Receiver(ip, addNode, findClosestNodes)
+
+	// Start CLI
+	cliChannel := make(chan string)
+	go cli.CliServer(cliChannel)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {
