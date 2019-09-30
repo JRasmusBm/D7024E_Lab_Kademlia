@@ -29,6 +29,14 @@ func main() {
 		// TODO: Handle case when "normal" node
 	}
 
-	// Receiver will be busy waiting in the main thread.
-	network.Receiver(table, ip)
+	// Start node receiver.
+	go network.Receiver(table, ip)
+
+	// Busy wait in main thread until "exit" is sent by CLI
+	for {
+		cliVar := <- cliChannel
+		if cliVar == "exit" {
+			break
+		}
+	}
 }

@@ -24,7 +24,7 @@ func Receiver(table *node.RoutingTable, ip string) {
 	// Will block until connection is made.
 		conn, _ := ln.Accept()
 
-		// Will block until message ending with newline (\n) is received.
+		// Will block until message ending with semicolon (;) is received.
 		msg, _ := bufio.NewReader(conn).ReadString(';')
 		msg = strings.TrimRight(msg, ";")
 		
@@ -49,6 +49,7 @@ func Receiver(table *node.RoutingTable, ip string) {
 						response += node.String()
 					}
 				}
+				response += ";"
 				conn.Write([]byte(response))
 			case "STORE": // Store the data and acknowledge.
 				// Syntax: STORE <data>
