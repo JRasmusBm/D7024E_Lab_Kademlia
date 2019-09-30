@@ -3,9 +3,11 @@ package main
 import (
 	cli "cli/server"
 	"fmt"
-	"time"
 	networkutils "utils/network"
 	nodeutils "utils/node"
+	"utils/hashing"
+	"network"
+	//"time"
 )
 
 func main() {
@@ -18,16 +20,23 @@ func main() {
 	}
 	fmt.Println(ip)
 
-	var node *nodeutils.Node
-	node = new(nodeutils.Node)
-	node.IP = "172.20.0.2"
+	node := nodeutils.NewNode(hashing.NewRandomKademliaID(), ip)
+	table := nodeutils.NewRoutingTable(node)
 
-	//while true-loop.
+	if ip == "172.19.1.2" {
+		// TODO: Handle case when bootstrap node
+	} else {
+		// TODO: Handle case when "normal" node
+	}
+
+	// Start node receiver.
+	go network.Receiver(table, ip)
+
+	// Busy wait in main thread until "exit" is sent by CLI
 	for {
 		cliVar := <- cliChannel
 		if cliVar == "exit" {
 			break
 		}
-		time.Sleep(time.Second)
 	}
 }

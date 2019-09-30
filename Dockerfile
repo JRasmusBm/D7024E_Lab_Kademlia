@@ -9,7 +9,7 @@ RUN apt-get update && \
 
 ENV GOPATH=/srv/node
 
-EXPOSE 80
+EXPOSE 80 6000
 
 # Compile code
 ADD src ./src
