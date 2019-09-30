@@ -7,13 +7,10 @@ import (
 	nodeutils "utils/node"
 	"utils/hashing"
 	"network"
-	//"time"
+    api_p "api"
 )
 
 func main() {
-	cliChannel := make(chan string)
-	go cli.CliServer(cliChannel)
-
 	ip, err := networkutils.GetIP()
 	if err != nil {
 		fmt.Println(err)
@@ -23,6 +20,13 @@ func main() {
 	node := nodeutils.NewNode(hashing.NewRandomKademliaID(), ip)
 	table := nodeutils.NewRoutingTable(node)
 
+	addNode := make(chan nodeutils.AddNodeOp)
+	findClosestNodes := make(chan nodeutils.FindClosestNodesOp)
+	sender := network.RealSender{AddNode: addNode, FindClosestNodes: findClosestNodes}
+    api := api_p.API{Sender: sender}
+
+	go nodeutils.TableSynchronizer(table, addNode, findClosestNodes)
+
 	if ip == "172.19.1.2" {
 		// TODO: Handle case when bootstrap node
 	} else {
@@ -30,7 +34,11 @@ func main() {
 	}
 
 	// Start node receiver.
-	go network.Receiver(table, ip)
+	go network.Receiver(ip, sender)
+
+	// Start CLI
+	cliChannel := make(chan string)
+	go cli.CliServer(cliChannel, api)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {

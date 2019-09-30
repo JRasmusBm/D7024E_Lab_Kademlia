@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"api"
+	api_p "api"
 	"bufio"
 	"fmt"
 	"net"
@@ -21,7 +21,7 @@ const (
 // Listens to its own IP on port 80
 // Attempts to establish a connection to the incoming connection request.
 // If a terminate('exit') command was issued, stops the listener to avoid panic errors as the node is terminated.
-func CliServer(cliChannel chan string) {
+func CliServer(cliChannel chan string, api api_p.API) {
 	connHost, err := networkutils.GetIP()
 	errorPrinter(err)
 	listener, err := net.Listen(ConnType, connHost+":"+ConnPort)
@@ -32,7 +32,7 @@ func CliServer(cliChannel chan string) {
 		conn, err := listener.Accept()
 		listenerError(err)
 		greetingsMessage(conn)
-		s := handleRequest(conn, cliChannel)
+		s := handleRequest(conn, cliChannel, api)
 		if s == "terminate" {
 			return
 		}
@@ -42,12 +42,12 @@ func CliServer(cliChannel chan string) {
 // Simulates a command prompt and reads incoming messages from the connection.
 // Splits the message into slices, a command and an argument (if there is one).
 // First word is the command, rest is the argument.
-func handleRequest(conn net.Conn, cliChannel chan string) (st string) {
+func handleRequest(conn net.Conn, cliChannel chan string, api api_p.API) (st string) {
 	for {
 		netData, err := bufio.NewReader(conn).ReadString('\n')
 		errorPrinter(err)
 		slicedMessage := strings.SplitN(netData, " ", 2)
-		s := commandHandler(conn, cliChannel, slicedMessage)
+		s := commandHandler(conn, api, cliChannel, slicedMessage)
 		if s == "close" {
 			break
 		}
@@ -63,7 +63,7 @@ func handleRequest(conn net.Conn, cliChannel chan string) (st string) {
 // Also returns in case of terminate to avoid terminating with panic errors by the node.
 // Calls on the proper function to handle the incoming command.
 // slicedMessage[0] is the command, slicedMessage[1] is the argument if an argument exists.
-func commandHandler(conn net.Conn, cliChannel chan string, slicedMessage []string) (s string) {
+func commandHandler(conn net.Conn, api api_p.API, cliChannel chan string, slicedMessage []string) (s string) {
 	if strings.TrimSpace(slicedMessage[0]) == "close" {
 		_, err := conn.Write([]byte("Closing connection.\n"))
 		errorPrinter(err)
@@ -79,13 +79,13 @@ func commandHandler(conn net.Conn, cliChannel chan string, slicedMessage []strin
 		terminate(cliChannel)
 		return s
 	} else if strings.TrimSpace(slicedMessage[0]) == "get" {
-		getObject(conn, slicedMessage[1])
+		getObject(conn, api, slicedMessage[1])
 		// } else if strings.TrimSpace(slicedMessage[0]) == "forget" {
 		// 	forgetTTL(conn, slicedMessage[1])
 	} else if strings.TrimSpace(slicedMessage[0]) == "put" {
-		putObject(conn, slicedMessage[1])
+		putObject(conn, api, slicedMessage[1])
 	} else if strings.TrimSpace(slicedMessage[0]) == "ping" {
-		ping(conn, slicedMessage[1])
+		ping(conn, api, slicedMessage[1])
 	} else if strings.TrimSpace(slicedMessage[0]) == "help" {
 		availableCommands(conn)
 	} else {
@@ -121,24 +121,28 @@ func terminate(cliChannel chan string) {
 }
 
 // Should return its hash if successfully restored, currently only returns wether the store was successful or not.
-func putObject(conn net.Conn, value string) {
+func putObject(conn net.Conn, api api_p.API, value string) {
 	key := api.Store(value)
-  _, err := conn.Write([]byte("Stored at: " + key.String()))
+    _, err := conn.Write([]byte("Stored at: " + key.String()))
 	errorPrinter(err)
 }
 
-func getObject(conn net.Conn, hashNr string) {
+func getObject(conn net.Conn, api api_p.API, hashNr string) {
 	fmt.Println("Retreiving...")
-  value := api.FindValue(hashing.ToKademliaID(hashNr))
-  _, err := conn.Write([]byte("Value: " + value))
+    value, err := api.FindValue(hashing.ToKademliaID(hashNr))
+    if err != nil {
+        errorPrinter(err)
+        return
+    }
+    _, err = conn.Write([]byte("Value: " + value))
 	errorPrinter(err)
 }
 
-func ping(conn net.Conn, ipAddr string) {
+func ping(conn net.Conn, api api_p.API, ipAddr string) {
 	fmt.Println("Pinging...")
 	node := nodeutils.Node{IP: ipAddr}
-  ok := api.Ping(&node)
-  _, err := conn.Write([]byte("Online: " + strconv.FormatBool(ok) + "\n"))
+    ok := api.Ping(&node)
+    _, err := conn.Write([]byte("Online: " + strconv.FormatBool(ok) + "\n"))
 	errorPrinter(err)
 }
 
