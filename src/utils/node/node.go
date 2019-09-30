@@ -2,18 +2,18 @@ package node
 
 import (
 	"fmt"
-	"strings"
 	"os"
 	"sort"
-    "utils/hashing"
+	"strings"
 	"utils/constants"
+	"utils/hashing"
 )
 
 // Node definition
 // stores the KademliaID, the ip address and the distance
 type Node struct {
 	ID       *hashing.KademliaID
-	IP  string
+	IP       string
 	distance *hashing.KademliaID
 }
 
@@ -22,7 +22,7 @@ func NewNode(id *hashing.KademliaID, ip string) Node {
 	return Node{id, ip, nil}
 }
 
-// CalcDistance calculates the distance to the target and 
+// CalcDistance calculates the distance to the target and
 // fills the nodes distance field
 func (node *Node) CalcDistance(target *hashing.KademliaID) {
 	node.distance = node.ID.CalcDistance(target)
@@ -112,7 +112,7 @@ func (candidates *NodeCandidates) Swap(i, j int) {
 	candidates.nodes[i], candidates.nodes[j] = candidates.nodes[j], candidates.nodes[i]
 }
 
-// Less returns true if the Node at index i is smaller than 
+// Less returns true if the Node at index i is smaller than
 // the Node at index j
 func (candidates *NodeCandidates) Less(i, j int) bool {
 	return candidates.nodes[i].Less(&candidates.nodes[j])
