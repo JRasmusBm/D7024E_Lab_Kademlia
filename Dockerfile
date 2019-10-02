@@ -13,6 +13,7 @@ EXPOSE 80 6000
 
 # Compile code
 ADD src ./src
+ADD cli ./cli
 RUN go build -o ./build/out.o ./src/main.go
 
 # Run binary output from compiler
