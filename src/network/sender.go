@@ -88,7 +88,7 @@ func (sender RealSender) FindValue(key *hashing.KademliaID, ch chan string) {
 func (sender RealSender) Join(node *nodeutils.Node, ch chan bool) {
 	fmt.Printf("Joining Kademlia")
 	conn := dial(node)
-	fmt.Fprintf(conn, "JOIN " + node.String())
+	fmt.Fprintf(conn, "JOIN " + node.String() + ";")
 
 	msg, err := bufio.NewReader(conn).ReadString(';')
 	if err != nil {
