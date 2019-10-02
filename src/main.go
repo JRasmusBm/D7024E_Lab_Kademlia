@@ -1,16 +1,18 @@
 package main
 
 import (
+	api_p "api"
 	cli "cli/server"
 	"fmt"
+	"network"
+	"utils/hashing"
 	networkutils "utils/network"
 	nodeutils "utils/node"
-	"utils/hashing"
-	"network"
-    api_p "api"
 )
 
 func main() {
+	cliChannel := make(chan string)
+	go cli.CliServerInit(cliChannel)
 	ip, err := networkutils.GetIP()
 	if err != nil {
 		fmt.Println(err)
@@ -23,7 +25,7 @@ func main() {
 	addNode := make(chan nodeutils.AddNodeOp)
 	findClosestNodes := make(chan nodeutils.FindClosestNodesOp)
 	sender := network.RealSender{AddNode: addNode, FindClosestNodes: findClosestNodes}
-    api := api_p.API{Sender: sender}
+	api := api_p.API{Sender: sender}
 
 	go nodeutils.TableSynchronizer(table, addNode, findClosestNodes)
 
@@ -38,11 +40,11 @@ func main() {
 
 	// Start CLI
 	cliChannel := make(chan string)
-	go cli.CliServer(cliChannel, api)
+	go cli.CliServer(api, cliChannel)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {
-		cliVar := <- cliChannel
+		cliVar := <-cliChannel
 		if cliVar == "exit" {
 			break
 		}
