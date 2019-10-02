@@ -20,8 +20,9 @@ func main() {
 	node := nodeutils.NewNode(hashing.NewRandomKademliaID(), ip)
 	table := nodeutils.NewRoutingTable(node)
 
-	var addNode chan nodeutils.AddNodeOp
-	var findClosestNodes chan nodeutils.FindClosestNodesOp
+	addNode := make(chan nodeutils.AddNodeOp)
+	findClosestNodes := make(chan nodeutils.FindClosestNodesOp)
+	sender := network.RealSender{AddNode: addNode, FindClosestNodes: findClosestNodes}
 
 	go nodeutils.TableSynchronizer(table, addNode, findClosestNodes)
 
@@ -32,11 +33,11 @@ func main() {
 	}
 
 	// Start node receiver.
-	go network.Receiver(ip, addNode, findClosestNodes)
+	go network.Receiver(ip, sender)
 
 	// Start CLI
 	cliChannel := make(chan string)
-	go cli.CliServer(cliChannel)
+	go cli.CliServer(cliChannel, sender)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {

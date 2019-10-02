@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func Receiver(ip string, addNode chan nodeutils.AddNodeOp, findClosestNodes chan nodeutils.FindClosestNodesOp) {
+func Receiver(ip string, sender RealSender) {
 	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, constants.KADEMLIA_PORT))
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
@@ -27,7 +27,7 @@ func Receiver(ip string, addNode chan nodeutils.AddNodeOp, findClosestNodes chan
 		// Will block until message ending with semicolon (;) is received.
 		msg, _ := bufio.NewReader(conn).ReadString(';')
 		msg = strings.TrimRight(msg, ";")
-		
+
 		// Split string around spaces.
 		msg_split := strings.Split(msg, " ")
 
@@ -41,12 +41,12 @@ func Receiver(ip string, addNode chan nodeutils.AddNodeOp, findClosestNodes chan
 				// Syntax: FIND_NODE <id>;
 				target := hashing.NewKademliaID(msg_split[1])
 				var closest_nodes_ch chan []nodeutils.Node
-				findClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
+				sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
 				closest_nodes := <- closest_nodes_ch
 				response := ""
 				for i, node := range closest_nodes {
 					var result chan bool
-					addNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
+					sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
 
 					if i != len(closest_nodes)-1 {
 						response += node.String() + "  "
@@ -63,7 +63,7 @@ func Receiver(ip string, addNode chan nodeutils.AddNodeOp, findClosestNodes chan
 				// Syntax: JOIN <node>;
 				node, err := nodeutils.FromString(msg_split[1])
 				var result chan bool
-				addNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
+				sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
 
 				var response string
 				if <- result && err == nil {

@@ -11,6 +11,7 @@ import (
 	hashing "utils/hashing"
 	networkutils "utils/network"
 	nodeutils "utils/node"
+	"network"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 // Listens to its own IP on port 80
 // Attempts to establish a connection to the incoming connection request.
 // If a terminate('exit') command was issued, stops the listener to avoid panic errors as the node is terminated.
-func CliServer(cliChannel chan string) {
+func CliServer(cliChannel chan string, sender network.Sender) {
 	connHost, err := networkutils.GetIP()
 	errorPrinter(err)
 	listener, err := net.Listen(ConnType, connHost+":"+ConnPort)
@@ -32,7 +33,7 @@ func CliServer(cliChannel chan string) {
 		conn, err := listener.Accept()
 		listenerError(err)
 		greetingsMessage(conn)
-		s := handleRequest(conn, cliChannel)
+		s := handleRequest(conn, cliChannel, sender)
 		if s == "terminate" {
 			return
 		}
@@ -42,12 +43,12 @@ func CliServer(cliChannel chan string) {
 // Simulates a command prompt and reads incoming messages from the connection.
 // Splits the message into slices, a command and an argument (if there is one).
 // First word is the command, rest is the argument.
-func handleRequest(conn net.Conn, cliChannel chan string) (st string) {
+func handleRequest(conn net.Conn, cliChannel chan string, sender network.Sender) (st string) {
 	for {
 		netData, err := bufio.NewReader(conn).ReadString('\n')
 		errorPrinter(err)
 		slicedMessage := strings.SplitN(netData, " ", 2)
-		s := commandHandler(conn, cliChannel, slicedMessage)
+		s := commandHandler(conn, sender, cliChannel, slicedMessage)
 		if s == "close" {
 			break
 		}
@@ -63,7 +64,7 @@ func handleRequest(conn net.Conn, cliChannel chan string) (st string) {
 // Also returns in case of terminate to avoid terminating with panic errors by the node.
 // Calls on the proper function to handle the incoming command.
 // slicedMessage[0] is the command, slicedMessage[1] is the argument if an argument exists.
-func commandHandler(conn net.Conn, cliChannel chan string, slicedMessage []string) (s string) {
+func commandHandler(conn net.Conn, sender network.Sender, cliChannel chan string, slicedMessage []string) (s string) {
 	if strings.TrimSpace(slicedMessage[0]) == "close" {
 		_, err := conn.Write([]byte("Closing connection.\n"))
 		errorPrinter(err)
@@ -79,13 +80,13 @@ func commandHandler(conn net.Conn, cliChannel chan string, slicedMessage []strin
 		terminate(cliChannel)
 		return s
 	} else if strings.TrimSpace(slicedMessage[0]) == "get" {
-		getObject(conn, slicedMessage[1])
+		getObject(conn, sender, slicedMessage[1])
 		// } else if strings.TrimSpace(slicedMessage[0]) == "forget" {
 		// 	forgetTTL(conn, slicedMessage[1])
 	} else if strings.TrimSpace(slicedMessage[0]) == "put" {
-		putObject(conn, slicedMessage[1])
+		putObject(conn, sender, slicedMessage[1])
 	} else if strings.TrimSpace(slicedMessage[0]) == "ping" {
-		ping(conn, slicedMessage[1])
+		ping(conn, sender, slicedMessage[1])
 	} else if strings.TrimSpace(slicedMessage[0]) == "help" {
 		availableCommands(conn)
 	} else {
@@ -121,23 +122,23 @@ func terminate(cliChannel chan string) {
 }
 
 // Should return its hash if successfully restored, currently only returns wether the store was successful or not.
-func putObject(conn net.Conn, value string) {
-	key := api.Store(value)
+func putObject(conn net.Conn, sender network.Sender, value string) {
+	key := api.Store(value, sender)
   _, err := conn.Write([]byte("Stored at: " + key.String()))
 	errorPrinter(err)
 }
 
-func getObject(conn net.Conn, hashNr string) {
+func getObject(conn net.Conn, sender network.Sender, hashNr string) {
 	fmt.Println("Retreiving...")
-  value := api.FindValue(hashing.ToKademliaID(hashNr))
+  value := api.FindValue(hashing.ToKademliaID(hashNr), sender)
   _, err := conn.Write([]byte("Value: " + value))
 	errorPrinter(err)
 }
 
-func ping(conn net.Conn, ipAddr string) {
+func ping(conn net.Conn, sender network.Sender, ipAddr string) {
 	fmt.Println("Pinging...")
 	node := nodeutils.Node{IP: ipAddr}
-  ok := api.Ping(&node)
+  ok := api.Ping(&node, sender)
   _, err := conn.Write([]byte("Online: " + strconv.FormatBool(ok) + "\n"))
 	errorPrinter(err)
 }
