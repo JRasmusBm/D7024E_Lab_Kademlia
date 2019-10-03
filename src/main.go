@@ -7,7 +7,7 @@ import (
 	nodeutils "utils/node"
 	"utils/hashing"
 	"network"
-	//"time"
+    api_p "api"
 )
 
 func main() {
@@ -23,6 +23,7 @@ func main() {
 	addNode := make(chan nodeutils.AddNodeOp)
 	findClosestNodes := make(chan nodeutils.FindClosestNodesOp)
 	sender := network.RealSender{AddNode: addNode, FindClosestNodes: findClosestNodes}
+    api := api_p.API{Sender: sender}
 
 	go nodeutils.TableSynchronizer(table, addNode, findClosestNodes)
 
@@ -37,7 +38,7 @@ func main() {
 
 	// Start CLI
 	cliChannel := make(chan string)
-	go cli.CliServer(cliChannel, sender)
+	go cli.CliServer(cliChannel, api)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {

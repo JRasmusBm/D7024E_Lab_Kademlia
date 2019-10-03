@@ -20,11 +20,11 @@ func dial(node *nodeutils.Node) (net.Conn, error) {
 }
 
 type Sender interface {
-	Ping(node *nodeutils.Node, ch chan bool)
+	Ping(node *nodeutils.Node, ch chan bool, errCh chan error)
 	Store(content string, ch chan *hashing.KademliaID)
-	FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *[constants.CLOSESTNODES]nodeutils.Node)
+	FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *[constants.CLOSESTNODES]nodeutils.Node, errCh chan error)
 	FindValue(key *hashing.KademliaID, ch chan string)
-	Join(node *nodeutils.Node, ch chan bool)
+	Join(node *nodeutils.Node, ch chan bool, errCh chan error)
 }
 
 type RealSender struct {
@@ -32,14 +32,18 @@ type RealSender struct {
 	FindClosestNodes chan nodeutils.FindClosestNodesOp
 }
 
-func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool) {
-	conn := dial(node)
-	fmt.Fprintf(conn, "PING;")
-	msg, err := bufio.NewReader(conn).ReadString(';')
+func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool, errCh chan error) {
+	conn, err := dial(node)
 	if err != nil {
-		errCh <- err
+		errCh <- err 
 		return
 	}
+	fmt.Fprintf(conn, "PING;")
+	msg, err := bufio.NewReader(conn).ReadString(';')
+    if err != nil {
+        errCh <- err
+    }
+
 	msg = strings.TrimRight(msg, ";")
 
 	ch <- (msg == "PONG")
@@ -51,7 +55,7 @@ func (sender RealSender) Store(content string, ch chan *hashing.KademliaID) {
 	return
 }
 
-func (sender RealSender) FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *[constants.CLOSESTNODES]nodeutils.Node) {
+func (sender RealSender) FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *[constants.CLOSESTNODES]nodeutils.Node, errCh chan error) {
 	fmt.Printf("Finding Node %s", id)
 	conn, err := dial(node)
 	if err != nil {
@@ -85,9 +89,12 @@ func (sender RealSender) FindValue(key *hashing.KademliaID, ch chan string) {
 	return
 }
 
-func (sender RealSender) Join(node *nodeutils.Node, ch chan bool) {
+func (sender RealSender) Join(node *nodeutils.Node, ch chan bool, errCh chan error) {
 	fmt.Printf("Joining Kademlia")
-	conn := dial(node)
+	conn, err := dial(node)
+    if err != nil {
+        errCh <- err
+    }
 	fmt.Fprintf(conn, "JOIN " + node.String() + ";")
 
 	msg, err := bufio.NewReader(conn).ReadString(';')
