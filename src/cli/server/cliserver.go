@@ -122,27 +122,36 @@ func terminate(cliChannel chan string) {
 
 // Should return its hash if successfully restored, currently only returns wether the store was successful or not.
 func putObject(conn net.Conn, api api_p.API, value string) {
-	key := api.Store(value)
-    _, err := conn.Write([]byte("Stored at: " + key.String()))
+	key, err := api.Store(value)
+	if err != nil {
+		_, err = conn.Write([]byte(fmt.Sprintf("%v", err)))
+	}
+	_, err = conn.Write([]byte("Stored at: " + key.String()))
 	errorPrinter(err)
 }
 
 func getObject(conn net.Conn, api api_p.API, hashNr string) {
 	fmt.Println("Retreiving...")
-    value, err := api.FindValue(hashing.ToKademliaID(hashNr))
-    if err != nil {
-        errorPrinter(err)
-        return
-    }
-    _, err = conn.Write([]byte("Value: " + value))
+	id, err := hashing.ToKademliaID(hashNr)
+
+	if err != nil {
+		errorPrinter(err)
+		return
+	}
+	value, err := api.FindValue(id)
+	if err != nil {
+		errorPrinter(err)
+		return
+	}
+	_, err = conn.Write([]byte("Value: " + value))
 	errorPrinter(err)
 }
 
 func ping(conn net.Conn, api api_p.API, ipAddr string) {
 	fmt.Println("Pinging...")
 	node := nodeutils.Node{IP: ipAddr}
-    ok := api.Ping(&node)
-    _, err := conn.Write([]byte("Online: " + strconv.FormatBool(ok) + "\n"))
+	ok := api.Ping(&node)
+	_, err := conn.Write([]byte("Online: " + strconv.FormatBool(ok) + "\n"))
 	errorPrinter(err)
 }
 
