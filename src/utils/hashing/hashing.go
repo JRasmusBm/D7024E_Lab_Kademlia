@@ -18,14 +18,6 @@ type KademliaID [IDLength]byte
 func NewKademliaID(data string) (*KademliaID, error) {
 	src := []byte(data)
 	encoded := sha1.Sum(src)
-	if len(encoded) != IDLength {
-		return nil, errors.New(
-			fmt.Sprintf(
-				"Invalid ID length, should be %v bytes",
-				IDLength,
-			),
-		)
-	}
 
 	newKademliaID := KademliaID{}
 	for i := 0; i < IDLength; i++ {
