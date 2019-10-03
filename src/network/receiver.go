@@ -1,15 +1,15 @@
 package network
 
 import (
-	"net"
-	"strings"
 	"bufio"
-	"utils/constants"
 	"fmt"
-	nodeutils "utils/node"
-	"utils/hashing"
+	"net"
 	"os"
 	"strconv"
+	"strings"
+	"utils/constants"
+	"utils/hashing"
+	nodeutils "utils/node"
 )
 
 func Receiver(ip string, sender RealSender) {
@@ -34,45 +34,45 @@ func Receiver(ip string, sender RealSender) {
 		fmt.Println("Message received:", msg)
 
 		switch msg_split[0] {
-			case "PING": // Return PONG to verify that the request succeded.
-				// Syntax: PING;
-				conn.Write([]byte("PONG;"))
-			case "FIND_NODE": // Return the x closest known nodes in a sequence separated by spaces.
-				// Syntax: FIND_NODE <id>;
-				target := hashing.NewKademliaID(msg_split[1])
-				var closest_nodes_ch chan []nodeutils.Node
-				sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
-				closest_nodes := <- closest_nodes_ch
-				response := ""
-				for i, node := range closest_nodes {
-					var result chan bool
-					sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
-
-					if i != len(closest_nodes)-1 {
-						response += node.String() + "  "
-					} else {
-						response += node.String()
-					}
-				}
-				response += ";"
-				conn.Write([]byte(response))
-			case "STORE": // Store the data and acknowledge.
-				// Syntax: STORE <data>;
-				// TODO
-			case "JOIN": // Add a node to routing table/bucket list (if possible) and acknowledge.
-				// Syntax: JOIN <node>;
-				node, err := nodeutils.FromString(msg_split[1])
+		case "PING": // Return PONG to verify that the request succeded.
+			// Syntax: PING;
+			conn.Write([]byte("PONG;"))
+		case "FIND_NODE": // Return the x closest known nodes in a sequence separated by spaces.
+			// Syntax: FIND_NODE <id>;
+			target, _ := hashing.NewKademliaID(msg_split[1])
+			var closest_nodes_ch chan []nodeutils.Node
+			sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
+			closest_nodes := <-closest_nodes_ch
+			response := ""
+			for i, node := range closest_nodes {
 				var result chan bool
 				sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
 
-				var response string
-				if <- result && err == nil {
-					response = "SUCCESS;"
+				if i != len(closest_nodes)-1 {
+					response += node.String() + "  "
 				} else {
-					response = "FULL;"
+					response += node.String()
 				}
+			}
+			response += ";"
+			conn.Write([]byte(response))
+		case "STORE": // Store the data and acknowledge.
+			// Syntax: STORE <data>;
+			// TODO
+		case "JOIN": // Add a node to routing table/bucket list (if possible) and acknowledge.
+			// Syntax: JOIN <node>;
+			node, err := nodeutils.FromString(msg_split[1])
+			var result chan bool
+			sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
 
-				conn.Write([]byte(response))
+			var response string
+			if <-result && err == nil {
+				response = "SUCCESS;"
+			} else {
+				response = "FULL;"
+			}
+
+			conn.Write([]byte(response))
 		}
 	}
 }

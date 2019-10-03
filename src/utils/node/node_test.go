@@ -45,14 +45,13 @@ func TestFromStringInvalidSyntax(t *testing.T) {
 }
 
 func TestFromStringInvalidSyntax2(t *testing.T) {
-  node, err := FromString(
-    "node(\"1231330000000000000000000000000000000001\")",
-  )
-  if err == nil {
-    t.Errorf("Should throw error, instead got node: %#v", node)
-  }
+	node, err := FromString(
+		"node(\"1231330000000000000000000000000000000001\")",
+	)
+	if err == nil {
+		t.Errorf("Should throw error, instead got node: %#v", node)
+	}
 }
-
 
 func TestFromStringInvalidIDLength(t *testing.T) {
 	node, err := FromString(

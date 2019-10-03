@@ -21,36 +21,36 @@ func dial(node *nodeutils.Node) (net.Conn, error) {
 
 type Sender interface {
 	Ping(node *nodeutils.Node, ch chan bool, errCh chan error)
-	Store(content string, ch chan *hashing.KademliaID)
+	Store(content string, ch chan *hashing.KademliaID, errCh chan error)
 	FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *[constants.CLOSESTNODES]nodeutils.Node, errCh chan error)
-	FindValue(key *hashing.KademliaID, ch chan string)
+	FindValue(key *hashing.KademliaID, ch chan string, errCh chan error)
 	Join(node *nodeutils.Node, ch chan bool, errCh chan error)
 }
 
 type RealSender struct {
-	AddNode chan nodeutils.AddNodeOp
+	AddNode          chan nodeutils.AddNodeOp
 	FindClosestNodes chan nodeutils.FindClosestNodesOp
 }
 
 func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool, errCh chan error) {
 	conn, err := dial(node)
 	if err != nil {
-		errCh <- err 
+		errCh <- err
 		return
 	}
 	fmt.Fprintf(conn, "PING;")
 	msg, err := bufio.NewReader(conn).ReadString(';')
-    if err != nil {
-        errCh <- err
-    }
+	if err != nil {
+		errCh <- err
+	}
 
 	msg = strings.TrimRight(msg, ";")
 
 	ch <- (msg == "PONG")
 }
 
-func (sender RealSender) Store(content string, ch chan *hashing.KademliaID) {
-	hash := hashing.NewKademliaID(content)
+func (sender RealSender) Store(content string, ch chan *hashing.KademliaID, errCh chan error) {
+	hash, _ := hashing.NewKademliaID(content)
 	ch <- hash
 	return
 }
@@ -72,7 +72,11 @@ func (sender RealSender) FindNode(node *nodeutils.Node, id *hashing.KademliaID, 
 
 	msg = strings.TrimRight(msg, ";")
 
-	nodes := nodeutils.FromStrings(msg)
+	nodes, err := nodeutils.FromStrings(msg)
+	if err != nil {
+		errCh <- err
+		return
+	}
 
 	// Add all given nodes to routing table
 	var result chan bool
@@ -83,7 +87,7 @@ func (sender RealSender) FindNode(node *nodeutils.Node, id *hashing.KademliaID, 
 	ch <- nodes
 }
 
-func (sender RealSender) FindValue(key *hashing.KademliaID, ch chan string) {
+func (sender RealSender) FindValue(key *hashing.KademliaID, ch chan string, errCh chan error) {
 	fmt.Printf("Finding Value %s", key)
 	ch <- "Random value"
 	return
@@ -92,17 +96,17 @@ func (sender RealSender) FindValue(key *hashing.KademliaID, ch chan string) {
 func (sender RealSender) Join(node *nodeutils.Node, ch chan bool, errCh chan error) {
 	fmt.Printf("Joining Kademlia")
 	conn, err := dial(node)
-    if err != nil {
-        errCh <- err
-    }
-	fmt.Fprintf(conn, "JOIN " + node.String() + ";")
+	if err != nil {
+		errCh <- err
+	}
+	fmt.Fprintf(conn, "JOIN "+node.String()+";")
 
 	msg, err := bufio.NewReader(conn).ReadString(';')
 	if err != nil {
 		ch <- false
 		return
 	}
-	
+
 	msg = strings.TrimRight(msg, ";")
 	ch <- (msg == "SUCCESS")
 }
