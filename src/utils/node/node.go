@@ -1,8 +1,8 @@
 package node
 
 import (
+	"errors"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"utils/constants"
@@ -35,7 +35,7 @@ func (node *Node) Less(otherNode *Node) bool {
 
 // String returns a simple string representation of a Node
 func (node *Node) String() string {
-	return fmt.Sprintf(`node("%s", "%s")`, node.ID, node.IP)
+	return fmt.Sprintf(`node("%s","%s")`, node.ID, node.IP)
 }
 
 // Returns a Node instance from a string representation
@@ -52,32 +52,41 @@ func FromString(str string) (Node, error) {
 	str = strings.Split(str, "\")")[0]
 
 	// Split string into id and ip
-	node_data := strings.Split(str, "\", \"")
-	id := node_data[0]
+	node_data := strings.Split(str, "\",\"")
+	if len(node_data) < 2 {
+		return Node{}, errors.New(
+			"Node string should have the form `node(\"<id>\",\"<ip>\")`",
+		)
+	}
+	idString := node_data[0]
 	ip := node_data[1]
 
-	node = NewNode(hashing.NewKademliaID(id), ip)
+	id, err := hashing.ToKademliaID(idString)
+	if err != nil {
+		return node, err
+	}
+
+	node = NewNode(id, ip)
 
 	return node, nil
 }
 
 // Returns an array of nodes from string representation of
 // nodes separated by spaces.
-func FromStrings(str string) *[constants.CLOSESTNODES]Node {
+func FromStrings(str string) (*[constants.CLOSESTNODES]Node, error) {
 	nodes_string := strings.Split(str, " ")
-	var found_nodes *[constants.CLOSESTNODES]Node
+	found_nodes := [constants.CLOSESTNODES]Node{}
 	var node Node
 	var err error
 	for i, str := range nodes_string {
 		node, err = FromString(str)
 		if err != nil {
-			fmt.Printf(err.Error())
-			os.Exit(1)
+			return nil, err
 		}
 		found_nodes[i] = node
 	}
 
-	return found_nodes
+	return &found_nodes, nil
 }
 
 // NodeCandidates definition

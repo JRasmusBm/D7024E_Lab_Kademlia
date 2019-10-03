@@ -3,6 +3,8 @@ package hashing
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"math/rand"
 )
 
@@ -13,25 +15,44 @@ const IDLength = 20
 type KademliaID [IDLength]byte
 
 // NewKademliaID returns a new instance of a KademliaID based on the string input
-func NewKademliaID(data string) *KademliaID {
+func NewKademliaID(data string) (*KademliaID, error) {
 	src := []byte(data)
 	encoded := sha1.Sum(src)
+	if len(encoded) != IDLength {
+		return nil, errors.New(
+			fmt.Sprintf(
+				"Invalid ID length, should be %v bytes",
+				IDLength,
+			),
+		)
+	}
 
 	newKademliaID := KademliaID{}
 	for i := 0; i < IDLength; i++ {
 		newKademliaID[i] = encoded[i]
 	}
 
-	return &newKademliaID
+	return &newKademliaID, nil
 }
 
-func ToKademliaID(id string) *KademliaID {
-	idInBytes := id
+func ToKademliaID(id string) (*KademliaID, error) {
+	idInBytes, err := hex.DecodeString(id)
+	if err != nil {
+		return nil, err
+	}
+	if len(idInBytes) != IDLength {
+		return nil, errors.New(
+			fmt.Sprintf(
+				"Invalid ID length, should be %v bytes",
+				IDLength,
+			),
+		)
+	}
 	newKademliaID := KademliaID{}
 	for i := 0; i < IDLength; i++ {
 		newKademliaID[i] = idInBytes[i]
 	}
-	return &newKademliaID
+	return &newKademliaID, nil
 }
 
 // NewRandomKademliaID returns a new instance of a random KademliaID,

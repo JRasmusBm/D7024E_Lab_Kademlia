@@ -23,7 +23,7 @@ func NewRoutingTable(me Node) *RoutingTable {
 
 // AddNode add a new contact to the correct Bucket
 func (routingTable *RoutingTable) AddNode(contact Node) {
-	bucketIndex := routingTable.getBucketIndex(contact.ID)
+	bucketIndex := routingTable.getBucketIndex(contact.ID, hashing.IDLength)
 	bucket := routingTable.buckets[bucketIndex]
 	bucket.AddNode(contact)
 }
@@ -31,7 +31,7 @@ func (routingTable *RoutingTable) AddNode(contact Node) {
 // FindClosestNodes finds the count closest Nodes to the target in the RoutingTable
 func (routingTable *RoutingTable) FindClosestNodes(target *hashing.KademliaID, count int) []Node {
 	var candidates NodeCandidates
-	bucketIndex := routingTable.getBucketIndex(target)
+	bucketIndex := routingTable.getBucketIndex(target, hashing.IDLength)
 	bucket := routingTable.buckets[bucketIndex]
 
 	candidates.Append(bucket.GetNodeAndCalcDistance(target))
@@ -57,9 +57,9 @@ func (routingTable *RoutingTable) FindClosestNodes(target *hashing.KademliaID, c
 }
 
 // getBucketIndex get the correct Bucket index for the KademliaID
-func (routingTable *RoutingTable) getBucketIndex(id *hashing.KademliaID) int {
+func (routingTable *RoutingTable) getBucketIndex(id *hashing.KademliaID, idLength int) int {
 	distance := id.CalcDistance(routingTable.me.ID)
-	for i := 0; i < hashing.IDLength; i++ {
+	for i := 0; i < idLength; i++ {
 		for j := 0; j < 8; j++ {
 			if (distance[i]>>uint8(7-j))&0x1 != 0 {
 				return i*8 + j
@@ -72,23 +72,23 @@ func (routingTable *RoutingTable) getBucketIndex(id *hashing.KademliaID) int {
 
 type AddNodeOp struct {
 	AddedNode Node
-	Resp chan bool
+	Resp      chan bool
 }
 
 type FindClosestNodesOp struct {
 	Target *hashing.KademliaID
-	Count int
-	Resp chan []Node
+	Count  int
+	Resp   chan []Node
 }
 
 func TableSynchronizer(rTable *RoutingTable, addNodes chan AddNodeOp, findClosestNodes chan FindClosestNodesOp) {
 	for {
 		select {
-			case addNode := <- addNodes:
-				rTable.AddNode(addNode.AddedNode)
-				addNode.Resp <- true
-			case findClosestNode := <- findClosestNodes:
-				findClosestNode.Resp <- rTable.FindClosestNodes(findClosestNode.Target, findClosestNode.Count)
+		case addNode := <-addNodes:
+			rTable.AddNode(addNode.AddedNode)
+			addNode.Resp <- true
+		case findClosestNode := <-findClosestNodes:
+			findClosestNode.Resp <- rTable.FindClosestNodes(findClosestNode.Target, findClosestNode.Count)
 		}
 	}
 }
