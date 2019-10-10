@@ -98,12 +98,14 @@ func TestHandlePutFail(t *testing.T) {
 func TestSendMessageDoesNotCrash(t *testing.T) {
 	var client Client = &RealClient{}
 	var writer io.Writer = &MockWriter{}
-	client.SendMessage(&writer, "hello;")
+	go client.SendMessage(&writer, "hello;")
+	time.Sleep(300 * time.Millisecond)
 }
 
 func TestDial(t *testing.T) {
 	var network Network = &RealNetwork{}
-	network.Dial("tcp", "0.0.0.0")
+	go network.Dial("tcp", "0.0.0.0")
+	time.Sleep(300 * time.Millisecond)
 }
 
 func TestReadFile(t *testing.T) {
@@ -133,10 +135,10 @@ func TestConnectionValidWrongResponse(t *testing.T) {
 }
 
 func TestConnectionValidSuccess(t *testing.T) {
-  var reader Reader = &MockReader{ReadStringResult: "ok;"}
-  var writer io.Writer = &MockWriter{}
-  var client Client = &RealClient{}
-  if !client.ConnectionValid(&writer, &reader) {
-    t.Errorf("Should be valid when string is ok;")
-  }
+	var reader Reader = &MockReader{ReadStringResult: "ok;"}
+	var writer io.Writer = &MockWriter{}
+	var client Client = &RealClient{}
+	if !client.ConnectionValid(&writer, &reader) {
+		t.Errorf("Should be valid when string is ok;")
+	}
 }

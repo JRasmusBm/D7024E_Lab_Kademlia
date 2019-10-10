@@ -11,4 +11,5 @@ src/github.com/
 src/golang.org/
 pkg/
 coverage
+cli_coverage
 *.o

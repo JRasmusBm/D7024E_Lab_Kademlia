@@ -2,10 +2,11 @@ package cli
 
 import (
 	api_p "api"
-	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"strings"
+	networkutils "utils/network"
 )
 
 type Reader interface {
@@ -19,18 +20,21 @@ type Network interface {
 type Server interface {
 	SetupListener(network *Network) (net.Listener, error)
 	ListenForConnection(listener net.Listener) (net.Conn, error)
-	SuccessfulConnectionMessage() string
-	SupportedCommands() string
 	MakeConnectionReader(conn *net.Conn) *Reader
 	ListenToClient(reader *Reader) string
 	MessageParser(incomingMessage string) []string
 	CommandHandler(parsedMessage []string) string
-	SendMessage(conn *net.Conn, cliChannel chan string, responseMessage string)
+	SendMessage(conn *io.Writer, responseMessage string)
+	CloseConnection(conn *io.Closer, cliChannel chan string, responseMessage string)
 }
 
-func CliServerInit(api api_p.API, cliChannel chan string) {
+func CliServerInit(
+	api api_p.API,
+	networkUtils *networkutils.NetworkUtils,
+	cliChannel chan string,
+) {
 	var network Network = &RealNetwork{}
-	var server Server = &RealServer{api: api}
+	var server Server = &RealServer{api: api, networkUtils: networkUtils}
 	CliServer(cliChannel, &network, &server)
 }
 
@@ -43,7 +47,7 @@ func CliServer(
 		printError(err)
 		return
 	}
-	defer listener.Close()
+	//defer listener.Close() this should not have to be commented
 	for {
 		conn, err := (*server).ListenForConnection(listener)
 		if err != nil {
@@ -51,11 +55,6 @@ func CliServer(
 			return
 		}
 		connReader := (*server).MakeConnectionReader(&conn)
-		successfulconnection := (*server).SuccessfulConnectionMessage()
-		(*server).SendMessage(&conn, cliChannel, successfulconnection)
-		greetingMessage := (*server).SupportedCommands()
-		fmt.Println("Sending message: " + greetingMessage)
-		(*server).SendMessage(&conn, cliChannel, greetingMessage)
 		for {
 			incomingMessage := (*server).ListenToClient(connReader)
 			parsedMessage := (*server).MessageParser(incomingMessage)
@@ -73,8 +72,11 @@ func handleRequest(
 	parsedMessage []string,
 	cliChannel chan string) {
 	responseMessage := (*server).CommandHandler(parsedMessage)
-	fmt.Println("Sending message: " + responseMessage)
-	(*server).SendMessage(conn, cliChannel, responseMessage)
+	//fmt.Println("Sending message: " + responseMessage) causes mutex overflow in testing.
+	var writer io.Writer = *conn
+	var closer io.Closer = *conn
+	(*server).SendMessage(&writer, responseMessage)
+	(*server).CloseConnection(&closer, cliChannel, responseMessage)
 }
 
 func printError(err error) {

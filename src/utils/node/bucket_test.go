@@ -7,9 +7,9 @@ import (
 )
 
 func TestAddTwoNodes(t *testing.T) {
-	id1, _ := hashing.NewKademliaID("abc")
+	id1 := hashing.NewKademliaID("abc")
 	node1 := Node{ID: id1}
-	id2, _ := hashing.NewKademliaID("def")
+	id2 := hashing.NewKademliaID("def")
 	node2 := Node{ID: id2}
 	theList := list.List{}
 	theBucket := bucket{list: &theList}
@@ -32,8 +32,8 @@ func TestAddTwoNodes(t *testing.T) {
 }
 
 func TestAddNodeTwice(t *testing.T) {
-	id1, _ := hashing.NewKademliaID("abc")
-	id2, _ := hashing.NewKademliaID("def")
+	id1 := hashing.NewKademliaID("abc")
+	id2 := hashing.NewKademliaID("def")
 	node1 := Node{ID: id1}
 	node2 := Node{ID: id2}
 	theList := list.List{}

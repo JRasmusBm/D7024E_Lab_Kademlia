@@ -4,6 +4,7 @@ import (
 	api_p "api"
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -13,11 +14,12 @@ import (
 )
 
 type RealServer struct {
-	api api_p.API
+	api          api_p.API
+	networkUtils *networkutils.NetworkUtils
 }
 
 func (r *RealServer) SetupListener(network *Network) (net.Listener, error) {
-	connHost, err := networkutils.GetIP()
+	connHost, err := (*r.networkUtils).GetIP()
 	if err != nil {
 		return nil, err
 	}
@@ -27,20 +29,6 @@ func (r *RealServer) SetupListener(network *Network) (net.Listener, error) {
 
 func (r *RealServer) ListenForConnection(listener net.Listener) (net.Conn, error) {
 	return listener.Accept()
-}
-
-func (r *RealServer) SuccessfulConnectionMessage() string {
-	return "ok;"
-}
-
-func (r *RealServer) SupportedCommands() string {
-	return "List of supported commands:\n" +
-		"'close' Closes the connection to this node.\n" +
-		"'exit' Terminates the node.\n" +
-		"'get hashNr' hashNr is an argument and returns its stored value if one exists.\n" +
-		"'ping ipAddr' instruct the node to try and ping the given ipAddr.\n" +
-		"'put filename' reads the contents of the given file and attempts to store it on a kademlia node.\n" +
-		"Example: put test.txt;"
 }
 
 func (r *RealServer) MakeConnectionReader(conn *net.Conn) *Reader {
@@ -68,11 +56,18 @@ func (r *RealServer) CommandHandler(parsedMessage []string) string {
 	} else if strings.TrimSpace(parsedMessage[0]) == "exit" {
 		return "Terminating node.;"
 	} else if strings.TrimSpace(parsedMessage[0]) == "get" {
-		value := r.api.FindValue(hashing.ToKademliaID(strings.TrimSpace(parsedMessage[1])))
+		key, err := hashing.ToKademliaID(strings.TrimSpace(parsedMessage[1]))
+		if err != nil {
+			return "Error: Invalid Kademlia ID;"
+		}
+		value, err := r.api.FindValue(key)
+		if err != nil {
+			return err.Error() + ";"
+		}
 		return "Value: " + value + ";"
 	} else if strings.TrimSpace(parsedMessage[0]) == "put" {
-		key := r.api.Store(strings.TrimSpace(parsedMessage[1]))
-		return "Stored at: " + key.String() + ";"
+		key, sent := r.api.Store(strings.TrimSpace(parsedMessage[1]))
+		return fmt.Sprintf("Stored at: %v on %v nodes.;", key.String(), sent)
 	} else if strings.TrimSpace(parsedMessage[0]) == "ping" {
 		node := nodeutils.Node{IP: strings.TrimSpace(parsedMessage[1])}
 		ok := r.api.Ping(&node)
@@ -96,25 +91,20 @@ func supported_commands() string {
 		"Example: put test.txt;"
 }
 
-func (r *RealServer) SendMessage(conn *net.Conn, cliChannel chan string, responseMessage string) {
+func (r *RealServer) SendMessage(conn *io.Writer, responseMessage string) {
+	_, err := (*conn).Write([]byte(responseMessage))
+	if err != nil {
+		fmt.Println("Was unable to send message.")
+	}
+}
+
+func (r *RealServer) CloseConnection(conn *io.Closer, cliChannel chan string, responseMessage string) {
 	if responseMessage == "Closing connection.;" {
-		_, err := (*conn).Write([]byte(responseMessage))
-		if err != nil {
-			fmt.Println("Was unable to send message.")
-		}
 		(*conn).Close()
 		fmt.Println("Connection closed.")
 	} else if responseMessage == "Terminating node.;" {
-		_, err := (*conn).Write([]byte(responseMessage))
-		if err != nil {
-			fmt.Println("Was unable to send message.")
-		}
 		(*conn).Close()
 		cliChannel <- "exit"
-	} else {
-		_, err := (*conn).Write([]byte(responseMessage))
-		if err != nil {
-			fmt.Println("Was unable to send message.")
-		}
 	}
+	return
 }

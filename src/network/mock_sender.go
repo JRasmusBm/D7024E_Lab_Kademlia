@@ -9,9 +9,8 @@ import (
 type MockSender struct {
 	PingResponse      bool
 	PingErr           error
-	StoreResponse     *hashing.KademliaID
-	StoreErr          error
-	FindNodeResponse  *[constants.CLOSESTNODES]nodeutils.Node
+	StoreSent         int
+	FindNodeResponse  [constants.CLOSESTNODES]*nodeutils.Node
 	FindNodeErr       error
 	FindValueResponse string
 	FindValueErr      error
@@ -33,20 +32,16 @@ func (r *MockSender) Ping(
 
 func (r *MockSender) Store(
 	content string,
-	ch chan *hashing.KademliaID,
-	errCh chan error,
+	nodes [constants.REPLICATION_FACTOR]*nodeutils.Node,
+	ch chan int,
 ) {
-	if r.StoreErr != nil {
-		errCh <- r.StoreErr
-	}
-	ch <- r.StoreResponse
+	ch <- r.StoreSent
 	return
 }
 
 func (r *MockSender) FindNode(
-	node *nodeutils.Node,
 	id *hashing.KademliaID,
-	ch chan *[constants.CLOSESTNODES]nodeutils.Node,
+	ch chan [constants.CLOSESTNODES]*nodeutils.Node,
 	errCh chan error,
 ) {
 	if r.FindNodeErr != nil {

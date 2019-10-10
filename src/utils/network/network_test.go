@@ -121,3 +121,24 @@ func TestAddrsReturnsError(t *testing.T) {
 		t.Errorf("Expected to throw")
 	}
 }
+
+func TestMockNetworkUtilsOk(t *testing.T) {
+	var networkUtils NetworkUtils = &MockNetworkUtils{IP: "abc"}
+	actual, err := networkUtils.GetIP()
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if "abc" != actual {
+		t.Errorf("Expected %s got %s", "abc", actual)
+	}
+}
+
+func TestMockNetworkUtilsFail(t *testing.T) {
+	var networkUtils NetworkUtils = &MockNetworkUtils{
+		Err: errors.New("TestMockNetworkUtilsFail"),
+	}
+	_, err := networkUtils.GetIP()
+	if err == nil {
+		t.Errorf("Should throw error")
+	}
+}

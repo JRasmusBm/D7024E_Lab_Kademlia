@@ -8,12 +8,12 @@ import (
 	"utils/hashing"
 	networkutils "utils/network"
 	nodeutils "utils/node"
+	"utils/storage"
 )
 
 func main() {
-	cliChannel := make(chan string)
-	go cli.CliServerInit(cliChannel)
-	ip, err := networkutils.GetIP()
+  var networkUtils networkutils.NetworkUtils = &networkutils.RealNetworkUtils{}
+	ip, err := networkUtils.GetIP()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -27,6 +27,8 @@ func main() {
 	sender := network.RealSender{AddNode: addNode, FindClosestNodes: findClosestNodes}
 	api := api_p.API{Sender: sender}
 
+	store := storage.RealStorage{Data: make(map[string]string)}
+
 	go nodeutils.TableSynchronizer(table, addNode, findClosestNodes)
 
 	if ip == "172.19.1.2" {
@@ -36,11 +38,11 @@ func main() {
 	}
 
 	// Start node receiver.
-	go network.Receiver(ip, sender)
+	go network.Receiver(ip, sender, store)
 
 	// Start CLI
 	cliChannel := make(chan string)
-	go cli.CliServer(api, cliChannel)
+	go cli.CliServerInit(api, &networkUtils, cliChannel)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {

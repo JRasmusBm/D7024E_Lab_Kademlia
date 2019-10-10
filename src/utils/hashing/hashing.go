@@ -15,7 +15,7 @@ const IDLength = 20
 type KademliaID [IDLength]byte
 
 // NewKademliaID returns a new instance of a KademliaID based on the string input
-func NewKademliaID(data string) (*KademliaID, error) {
+func NewKademliaID(data string) (*KademliaID) {
 	src := []byte(data)
 	encoded := sha1.Sum(src)
 
@@ -24,7 +24,7 @@ func NewKademliaID(data string) (*KademliaID, error) {
 		newKademliaID[i] = encoded[i]
 	}
 
-	return &newKademliaID, nil
+	return &newKademliaID
 }
 
 func ToKademliaID(id string) (*KademliaID, error) {

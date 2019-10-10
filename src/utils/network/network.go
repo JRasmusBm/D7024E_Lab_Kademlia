@@ -51,7 +51,14 @@ func extractIP(ifaces []Interface, err error) (string, error) {
 	return "", errors.New("are you connected to the network?")
 }
 
-func GetIP() (string, error) {
+type NetworkUtils interface {
+	GetIP() (string, error)
+}
+
+type RealNetworkUtils struct {
+}
+
+func (r *RealNetworkUtils) GetIP() (string, error) {
 	rawIfces, err := net.Interfaces()
 	ifaces := []Interface{}
 	for _, v := range rawIfces {

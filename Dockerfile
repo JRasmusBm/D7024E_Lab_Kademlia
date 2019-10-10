@@ -7,13 +7,13 @@ RUN apt-get update && \
     apt-get install golang-go -y && \
     apt-get install iputils-ping -y
 
-ENV GOPATH=/srv/node
+ENV GOPATH="/srv/node"
 
 EXPOSE 80 6000
 
 # Compile code
 ADD src ./src
-ADD cli ./cli
+ADD cli ../cli
 RUN go build -o ./build/out.o ./src/main.go
 
 # Run binary output from compiler

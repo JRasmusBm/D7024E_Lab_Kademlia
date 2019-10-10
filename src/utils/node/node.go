@@ -73,20 +73,22 @@ func FromString(str string) (Node, error) {
 
 // Returns an array of nodes from string representation of
 // nodes separated by spaces.
-func FromStrings(str string) (*[constants.CLOSESTNODES]Node, error) {
+func FromStrings(str string) ([constants.CLOSESTNODES]*Node, error) {
 	nodes_string := strings.Split(str, " ")
-	found_nodes := [constants.CLOSESTNODES]Node{}
-	var node Node
-	var err error
+	found_nodes := [constants.CLOSESTNODES]*Node{}
 	for i, str := range nodes_string {
-		node, err = FromString(str)
+		node, err := FromString(str)
 		if err != nil {
-			return nil, err
+			return [constants.CLOSESTNODES]*Node{}, err
 		}
-		found_nodes[i] = node
+		fmt.Printf("i: %d", i)
+		fmt.Printf("%v,\n ", node)
+		found_nodes[i] = &node
 	}
 
-	return &found_nodes, nil
+	fmt.Printf("%v,\n ", found_nodes)
+
+	return found_nodes, nil
 }
 
 // NodeCandidates definition

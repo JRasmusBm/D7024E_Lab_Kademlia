@@ -8,7 +8,7 @@ import (
 )
 
 func TestToString(t *testing.T) {
-	id, _ := hashing.NewKademliaID("456")
+	id := hashing.NewKademliaID("456")
 	node := Node{IP: "123", ID: id}
 	expected := fmt.Sprintf(`node("%s","123")`, node.ID)
 	actual := node.String()
@@ -79,6 +79,7 @@ func TestFromStringsInvalidNodes(t *testing.T) {
 		t.Errorf("Should throw error, instead got node: %#v", nodes)
 	}
 }
+
 func TestFromStrings(t *testing.T) {
 	nodes, err := FromStrings(
 		"node(\"0000000000000000000000000000000000000000\",\"abc\") " +
@@ -89,34 +90,18 @@ func TestFromStrings(t *testing.T) {
 	}
 	id1, _ := hashing.ToKademliaID("0000000000000000000000000000000000000000")
 	id2, _ := hashing.ToKademliaID("1111111111111111111111111111111111111111")
-	expected := [constants.CLOSESTNODES]Node{
-		Node{ID: id1, IP: "abc"},
-		Node{ID: id2, IP: "def"},
+	expected := [constants.CLOSESTNODES]*Node{
+		&Node{ID: id1, IP: "abc"},
+		&Node{ID: id2, IP: "def"},
 	}
 	if len(nodes) != len(expected) ||
-		nodes[0].ID.String() != expected[0].ID.String() ||
+		!nodes[0].ID.Equals(expected[0].ID) ||
+		!nodes[1].ID.Equals(expected[1].ID) ||
 		nodes[0].IP != expected[0].IP ||
-		nodes[1].IP != expected[1].IP ||
-		nodes[1].ID.String() != expected[1].ID.String() {
-		t.Errorf("Expected len %v got len %v",
-			len(expected),
-			len(nodes),
-		)
-		t.Errorf("Position 0 ID: Expected %v got %v",
-			expected[0].ID,
-			nodes[0].ID,
-		)
-		t.Errorf("Position 0 IP: Expected %v got %v",
-			expected[0].IP,
-			nodes[0].IP,
-		)
-		t.Errorf("Position 1 ID: Expected %v got %v",
-			expected[1].ID,
-			nodes[1].ID,
-		)
-		t.Errorf("Position 1 IP: Expected %v got %v",
-			expected[1].IP,
-			nodes[1].IP,
-		)
+		nodes[1].IP != expected[1].IP {
+		t.Errorf("\nexpected:\n")
+		t.Errorf("%v,\n", expected)
+		t.Errorf("\ngot:\n")
+		t.Errorf("%v,\n", nodes)
 	}
 }

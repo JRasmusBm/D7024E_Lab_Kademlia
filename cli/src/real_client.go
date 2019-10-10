@@ -54,8 +54,6 @@ func (r *RealClient) MakeConnectionReader(conn *net.Conn) *Reader {
 }
 
 func (r *RealClient) ListenToServer(reader *Reader) {
-  (*reader).ReadString(';')
-  (*reader).ReadString(';')
 	for {
 		message, err := (*reader).ReadString(';')
 		if err != nil {

@@ -6,10 +6,7 @@ import (
 
 func TestNewKademliaID(t *testing.T) {
 	expected := "c412b37f8c0484e6db8bce177ae88c5443b26e92"
-	actual, err := NewKademliaID("hej")
-	if err != nil {
-		t.Error(err)
-	}
+	actual := NewKademliaID("hej")
 	if expected != actual.String() {
 		t.Errorf("Expected %v got %v", expected, actual)
 	}

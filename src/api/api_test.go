@@ -53,53 +53,61 @@ func TestPingError(t *testing.T) {
 }
 
 func TestStoreSuccessful(t *testing.T) {
-	expected, _ := hashing.NewKademliaID("def")
-	var sender network.Sender = &network.MockSender{StoreResponse: expected}
+	expected := hashing.NewKademliaID("abc")
+	var sender network.Sender = &network.MockSender{StoreSent: 2}
 	api := API{Sender: sender}
 	content := "abc"
-	actual, _ := api.Store(content)
-	if expected != actual {
+	actual, sent := api.Store(content)
+	if !expected.Equals(actual) {
 		t.Errorf(
 			"Expected %s got %s",
 			expected,
 			actual)
 	}
-}
-
-func TestStoreFailed(t *testing.T) {
-	var sender network.Sender = &network.MockSender{StoreErr: errors.New("Some Random Error")}
-	api := API{Sender: sender}
-	content := "abc"
-	_, err := api.Store(content)
-	if err == nil {
-		t.Errorf("Should throw error")
+	if sent != 2 {
+		t.Errorf("Expected %v got %v", 2, sent)
 	}
 }
 
+func TestStoreFailedHash(t *testing.T) {
+  expected := hashing.NewKademliaID("abc")
+  var sender network.Sender = &network.MockSender{StoreSent: 2}
+  api := API{Sender: sender}
+  content := "abc"
+  actual, sent := api.Store(content)
+  if !expected.Equals(actual) {
+    t.Errorf(
+      "Expected %s got %s",
+      expected,
+      actual)
+  }
+  if sent != 2 {
+    t.Errorf("Expected %v got %v", 2, sent)
+  }
+}
+
 func TestFindNodeSuccessful(t *testing.T) {
-	id1, _ := hashing.NewKademliaID("1")
-	id2, _ := hashing.NewKademliaID("2")
-	id3, _ := hashing.NewKademliaID("3")
+	id1 := hashing.NewKademliaID("1")
+	id2 := hashing.NewKademliaID("2")
+	id3 := hashing.NewKademliaID("3")
 	node1 := nodeutils.Node{IP: "1", ID: id1}
 	node2 := nodeutils.Node{IP: "2", ID: id2}
 	node3 := nodeutils.Node{IP: "3", ID: id3}
-	expected := &[constants.CLOSESTNODES]nodeutils.Node{node1, node2, node3}
+	expected := [constants.CLOSESTNODES]*nodeutils.Node{&node1, &node2, &node3}
 
 	var sender network.Sender = &network.MockSender{FindNodeResponse: expected}
 	api := API{Sender: sender}
-	actual, _ := api.FindNode(&node1, id3)
+	actual, _ := api.FindNode(id3)
 	if expected != actual {
 		t.Errorf("Expected %#v but got %#v", expected, actual)
 	}
 }
 
 func TestFindNodeFailed(t *testing.T) {
-	id1, _ := hashing.NewKademliaID("1")
-	id3, _ := hashing.NewKademliaID("3")
-	node := nodeutils.Node{IP: "1", ID: id1}
+	id3 := hashing.NewKademliaID("3")
 	var sender network.Sender = &network.MockSender{FindNodeErr: errors.New("Random error")}
 	api := API{Sender: sender}
-	_, err := api.FindNode(&node, id3)
+	_, err := api.FindNode(id3)
 
 	if err == nil {
 		t.Errorf("Expected findNode to return an error but it didn't")
@@ -110,7 +118,7 @@ func TestFindValueSuccessful(t *testing.T) {
 	expected := "def"
 	var sender network.Sender = &network.MockSender{FindValueResponse: expected}
 	api := API{Sender: sender}
-	key, _ := hashing.NewKademliaID("abc")
+	key := hashing.NewKademliaID("abc")
 	actual, _ := api.FindValue(key)
 	if expected != actual {
 		t.Errorf(
@@ -123,7 +131,7 @@ func TestFindValueSuccessful(t *testing.T) {
 func TestFindValueFailed(t *testing.T) {
 	var sender network.Sender = &network.MockSender{FindValueErr: errors.New("Random Error")}
 	api := API{Sender: sender}
-	key, _ := hashing.NewKademliaID("abc")
+	key := hashing.NewKademliaID("abc")
 	_, err := api.FindValue(key)
 	if err == nil {
 		t.Errorf(

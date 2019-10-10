@@ -72,7 +72,7 @@ func cliClient(
 			}
 			fmt.Println("Sending message: ", rpc)
 			(*client).SendMessage(&writer, rpc)
-			if rpc == "close;" {
+			if rpc == "close;" || rpc == "exit;"{
 				break
 			}
 		}
