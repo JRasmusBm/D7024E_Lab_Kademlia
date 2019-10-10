@@ -8,6 +8,7 @@ import (
 	"utils/hashing"
 	networkutils "utils/network"
 	nodeutils "utils/node"
+	"utils/storage"
 )
 
 func main() {
@@ -25,6 +26,8 @@ func main() {
 	sender := network.RealSender{AddNode: addNode, FindClosestNodes: findClosestNodes}
 	api := api_p.API{Sender: sender}
 
+	store := storage.RealStorage{Data: make(map[string]string)}
+
 	go nodeutils.TableSynchronizer(table, addNode, findClosestNodes)
 
 	if ip == "172.19.1.2" {
@@ -34,7 +37,7 @@ func main() {
 	}
 
 	// Start node receiver.
-	go network.Receiver(ip, sender)
+	go network.Receiver(ip, sender, store)
 
 	// Start CLI
 	cliChannel := make(chan string)

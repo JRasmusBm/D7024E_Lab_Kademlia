@@ -24,28 +24,35 @@ func (api API) Ping(node *nodeutils.Node) bool {
 	}
 }
 
-func (api API) Store(content string) (*hashing.KademliaID, error) {
-	ch := make(chan *hashing.KademliaID)
-	errCh := make(chan error)
-	go api.Sender.Store(content, ch, errCh)
-	select {
-	case key := <-ch:
-		return key, nil
-	case err := <-errCh:
-		return nil, err
+func (api API) Store(content string) (*hashing.KademliaID, int) {
+	ch := make(chan int)
+	key, err := hashing.NewKademliaID(content)
+	if err != nil {
+		return nil, 0
 	}
+	
+	nodes, err := api.FindNode(key)
+	if err != nil {
+		return nil, 0
+	}
+
+	go api.Sender.Store(content, nodes, ch)
+	sent := <- ch
+
+	return key, sent
 }
 
-func (api API) FindNode(node *nodeutils.Node, id *hashing.KademliaID) (*[constants.CLOSESTNODES]nodeutils.Node, error) {
-	ch := make(chan *[constants.CLOSESTNODES]nodeutils.Node)
+func (api API) FindNode(id *hashing.KademliaID) ([constants.CLOSESTNODES]*nodeutils.Node, error) {
+	ch := make(chan [constants.CLOSESTNODES]*nodeutils.Node)
 	errCh := make(chan error)
 
-	go api.Sender.FindNode(node, id, ch, errCh)
+	go api.Sender.FindNode(id, ch, errCh)
+	var nodes [constants.CLOSESTNODES]*nodeutils.Node
 	select {
-	case nodes := <-ch:
+	case nodes = <-ch:
 		return nodes, nil
 	case err := <-errCh:
-		return nil, err
+		return nodes, err
 	}
 }
 

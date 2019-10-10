@@ -1,9 +1,11 @@
-ype Message struct {
-	RPC string,
+package network
+
+type Message struct {
+	RPC string
 	Msg interface{}
 }
 
-type AckMsg {
+type AckMsg struct {
 	Success bool
 }
 
@@ -21,7 +23,7 @@ type FindNodeRespMsg struct {
 }
 
 // Store message
-type StoreMsg {
+type StoreMsg struct {
 	Data string
 }
 

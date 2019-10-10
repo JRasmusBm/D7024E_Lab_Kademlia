@@ -1,13 +1,12 @@
 package network
 
 import (
-	"bufio"
 	"fmt"
 	"net"
-	"strings"
 	"utils/constants"
 	hashing "utils/hashing"
 	nodeutils "utils/node"
+	"encoding/json"
 )
 
 func dial(node *nodeutils.Node) (net.Conn, error) {
@@ -21,8 +20,8 @@ func dial(node *nodeutils.Node) (net.Conn, error) {
 
 type Sender interface {
 	Ping(node *nodeutils.Node, ch chan bool, errCh chan error)
-	Store(content string, ch chan *hashing.KademliaID, errCh chan error)
-	FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *[constants.CLOSESTNODES]nodeutils.Node, errCh chan error)
+	Store(content string, nodes [constants.REPLICATION_FACTOR]*nodeutils.Node, ch chan int)
+	FindNode(id *hashing.KademliaID, ch chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error)
 	FindValue(key *hashing.KademliaID, ch chan string, errCh chan error)
 	Join(node *nodeutils.Node, ch chan bool, errCh chan error)
 }
@@ -38,41 +37,70 @@ func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool, errCh chan err
 		errCh <- err
 		return
 	}
-	fmt.Fprintf(conn, "PING;")
-	msg, err := bufio.NewReader(conn).ReadString(';')
+
+	decoder := json.NewDecoder(conn)
+
+	// Send PING message
+	encoder := json.NewEncoder(conn)
+	encoder.Encode(Message{RPC: "PING", Msg: PingMsg{Msg: "PING"}})
+
+	// Wait for PONG message
+	var msg PingMsg
+	err = decoder.Decode(&msg)
+
 	if err != nil {
 		errCh <- err
 	}
 
-	msg = strings.TrimRight(msg, ";")
-
-	ch <- (msg == "PONG")
+	ch <- (msg.Msg == "PONG")
 }
 
-func (sender RealSender) Store(content string, ch chan *hashing.KademliaID, errCh chan error) {
-	hash, _ := hashing.NewKademliaID(content)
-	ch <- hash
-	return
+func (sender RealSender) Store(content string, nodes [constants.REPLICATION_FACTOR]*nodeutils.Node, ch chan int) {
+	var conn net.Conn
+	var err error
+	sent := 0
+	for _, node := range nodes {
+		if node == nil {
+			continue
+		}
+
+		conn, err = dial(node)
+		if err == nil {
+			continue
+		}
+
+		encoder := json.NewEncoder(conn)
+		encoder.Encode(Message{RPC: "STORE", Msg: StoreMsg{Data: content}})
+		sent += 1
+	}
+	ch <- sent
 }
 
-func (sender RealSender) FindNode(node *nodeutils.Node, id *hashing.KademliaID, ch chan *[constants.CLOSESTNODES]nodeutils.Node, errCh chan error) {
+func (sender RealSender) FindNode(id *hashing.KademliaID, ch chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error) {
 	fmt.Printf("Finding Node %s", id)
-	conn, err := dial(node)
+	
+	resp := make(chan []nodeutils.Node)
+	sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: id, Count: 1, Resp: resp}
+	node := (<- resp)[0]
+
+	conn, err := dial(&node)
+	if err != nil {
+		errCh <- err
+		return
+	}
+	decoder := json.NewDecoder(conn)
+
+	encoder := json.NewEncoder(conn)
+	encoder.Encode(Message{RPC: "FIND_NODE", Msg: FindNodeMsg{ID: id.String()}})
+
+	var msg FindNodeRespMsg
+	err = decoder.Decode(&msg)
 	if err != nil {
 		errCh <- err
 		return
 	}
 
-	fmt.Fprintf(conn, "FIND_NODE %s;", id)
-	msg, err := bufio.NewReader(conn).ReadString(';')
-	if err != nil {
-		errCh <- err
-		return
-	}
-
-	msg = strings.TrimRight(msg, ";")
-
-	nodes, err := nodeutils.FromStrings(msg)
+	nodes, err := nodeutils.FromStrings(msg.Nodes)
 	if err != nil {
 		errCh <- err
 		return
@@ -81,7 +109,7 @@ func (sender RealSender) FindNode(node *nodeutils.Node, id *hashing.KademliaID, 
 	// Add all given nodes to routing table
 	var result chan bool
 	for _, node := range nodes {
-		sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
+		sender.AddNode <- nodeutils.AddNodeOp{AddedNode: *node, Resp: result}
 	}
 
 	ch <- nodes
@@ -94,19 +122,22 @@ func (sender RealSender) FindValue(key *hashing.KademliaID, ch chan string, errC
 }
 
 func (sender RealSender) Join(node *nodeutils.Node, ch chan bool, errCh chan error) {
-	fmt.Printf("Joining Kademlia")
 	conn, err := dial(node)
 	if err != nil {
 		errCh <- err
 	}
-	fmt.Fprintf(conn, "JOIN "+node.String()+";")
 
-	msg, err := bufio.NewReader(conn).ReadString(';')
+	decoder := json.NewDecoder(conn)
+	encoder := json.NewEncoder(conn)
+
+	encoder.Encode(Message{RPC: "JOIN", Msg: JoinMsg{Msg: node.String()}})
+
+	var msg AckMsg
+	err = decoder.Decode(&msg)
 	if err != nil {
 		ch <- false
 		return
 	}
 
-	msg = strings.TrimRight(msg, ";")
-	ch <- (msg == "SUCCESS")
+	ch <- msg.Success
 }

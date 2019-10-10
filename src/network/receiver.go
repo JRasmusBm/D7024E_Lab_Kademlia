@@ -1,19 +1,19 @@
 package network
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"os"
 	"strconv"
-	"strings"
 	"utils/constants"
 	"utils/hashing"
 	nodeutils "utils/node"
 	"encoding/json"
+	"log"
+	"utils/storage"
 )
 
-func Receiver(ip string, sender RealSender) {
+func Receiver(ip string, sender RealSender, store storage.Storage) {
 	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, constants.KADEMLIA_PORT))
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
@@ -41,8 +41,7 @@ func Receiver(ip string, sender RealSender) {
 			encoder.Encode(PingMsg{Msg: "PONG"})
 
 		case "FIND_NODE": // Return the x closest known nodes in a sequence separated by spaces.
-			var findNodeMsg FindNodeMsg
-			findNodeMsg = msg.Msg
+			findNodeMsg := msg.Msg.(FindNodeMsg)
 			target, _ := hashing.NewKademliaID(findNodeMsg.ID)
 			var closest_nodes_ch chan []nodeutils.Node
 			sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
@@ -61,11 +60,15 @@ func Receiver(ip string, sender RealSender) {
 			encoder.Encode(FindNodeRespMsg{Nodes: response})
 
 		case "STORE": // Store the data and acknowledge.
-			// Syntax: STORE <data>;
+			storeMsg := msg.Msg.(StoreMsg)
+			kid, _ := hashing.NewKademliaID(storeMsg.Data)
+			key := kid.String()
+			store.Write(key, storeMsg.Data)
+			encoder.Encode(AckMsg{Success: true})
 
 		case "JOIN": // Add a node to routing table/bucket list (if possible) and acknowledge.
-			// Syntax: JOIN <node>;
-			node, err := nodeutils.FromString(msg_split[1])
+			joinMsg := msg.Msg.(JoinMsg)
+			node, err := nodeutils.FromString(joinMsg.Msg)
 			var result chan bool
 			sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
 
