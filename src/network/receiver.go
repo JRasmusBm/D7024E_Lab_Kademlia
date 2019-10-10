@@ -42,7 +42,7 @@ func Receiver(ip string, sender RealSender, store storage.Storage) {
 
 		case "FIND_NODE": // Return the x closest known nodes in a sequence separated by spaces.
 			findNodeMsg := msg.Msg.(FindNodeMsg)
-			target, _ := hashing.NewKademliaID(findNodeMsg.ID)
+			target := hashing.NewKademliaID(findNodeMsg.ID)
 			var closest_nodes_ch chan []nodeutils.Node
 			sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
 			closest_nodes := <-closest_nodes_ch
@@ -61,7 +61,7 @@ func Receiver(ip string, sender RealSender, store storage.Storage) {
 
 		case "STORE": // Store the data and acknowledge.
 			storeMsg := msg.Msg.(StoreMsg)
-			kid, _ := hashing.NewKademliaID(storeMsg.Data)
+			kid := hashing.NewKademliaID(storeMsg.Data)
 			key := kid.String()
 			store.Write(key, storeMsg.Data)
 			encoder.Encode(AckMsg{Success: true})

@@ -76,15 +76,17 @@ func FromString(str string) (Node, error) {
 func FromStrings(str string) ([constants.CLOSESTNODES]*Node, error) {
 	nodes_string := strings.Split(str, " ")
 	found_nodes := [constants.CLOSESTNODES]*Node{}
-	var node Node
-	var err error
 	for i, str := range nodes_string {
-		node, err = FromString(str)
+		node, err := FromString(str)
 		if err != nil {
-			return found_nodes, err
+			return [constants.CLOSESTNODES]*Node{}, err
 		}
+		fmt.Printf("i: %d", i)
+		fmt.Printf("%v,\n ", node)
 		found_nodes[i] = &node
 	}
+
+	fmt.Printf("%v,\n ", found_nodes)
 
 	return found_nodes, nil
 }

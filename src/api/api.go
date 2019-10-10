@@ -26,18 +26,12 @@ func (api API) Ping(node *nodeutils.Node) bool {
 
 func (api API) Store(content string) (*hashing.KademliaID, int) {
 	ch := make(chan int)
-	key, err := hashing.NewKademliaID(content)
-	if err != nil {
-		return nil, 0
-	}
-	
-	nodes, err := api.FindNode(key)
-	if err != nil {
-		return nil, 0
-	}
+	key := hashing.NewKademliaID(content)
+
+	nodes, _ := api.FindNode(key)
 
 	go api.Sender.Store(content, nodes, ch)
-	sent := <- ch
+	sent := <-ch
 
 	return key, sent
 }
@@ -47,7 +41,7 @@ func (api API) FindNode(id *hashing.KademliaID) ([constants.CLOSESTNODES]*nodeut
 	errCh := make(chan error)
 
 	go api.Sender.FindNode(id, ch, errCh)
-	var nodes [constants.CLOSESTNODES]*nodeutils.Node
+	nodes := [constants.CLOSESTNODES]*nodeutils.Node{}
 	select {
 	case nodes = <-ch:
 		return nodes, nil
