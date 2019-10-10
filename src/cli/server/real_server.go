@@ -29,20 +29,6 @@ func (r *RealServer) ListenForConnection(listener net.Listener) (net.Conn, error
 	return listener.Accept()
 }
 
-func (r *RealServer) SuccessfulConnectionMessage() string {
-	return "ok;"
-}
-
-func (r *RealServer) SupportedCommands() string {
-	return "List of supported commands:\n" +
-		"'close' Closes the connection to this node.\n" +
-		"'exit' Terminates the node.\n" +
-		"'get hashNr' hashNr is an argument and returns its stored value if one exists.\n" +
-		"'ping ipAddr' instruct the node to try and ping the given ipAddr.\n" +
-		"'put filename' reads the contents of the given file and attempts to store it on a kademlia node.\n" +
-		"Example: put test.txt;"
-}
-
 func (r *RealServer) MakeConnectionReader(conn *net.Conn) *Reader {
 	var reader Reader = bufio.NewReader(*conn)
 	return &reader
@@ -68,10 +54,20 @@ func (r *RealServer) CommandHandler(parsedMessage []string) string {
 	} else if strings.TrimSpace(parsedMessage[0]) == "exit" {
 		return "Terminating node.;"
 	} else if strings.TrimSpace(parsedMessage[0]) == "get" {
-		value := r.api.FindValue(hashing.ToKademliaID(strings.TrimSpace(parsedMessage[1])))
+		temp, err := hashing.ToKademliaID(strings.TrimSpace(parsedMessage[1]))
+		if err != nil {
+			return "Incorrect kademlia ID"
+		}
+		value, err := r.api.FindValue(temp)
+		if err != nil {
+			return "Incorrect kademlia ID"
+		}
 		return "Value: " + value + ";"
 	} else if strings.TrimSpace(parsedMessage[0]) == "put" {
-		key := r.api.Store(strings.TrimSpace(parsedMessage[1]))
+		key, err := r.api.Store(strings.TrimSpace(parsedMessage[1]))
+		if err != nil {
+			return "Could not upload."
+		}
 		return "Stored at: " + key.String() + ";"
 	} else if strings.TrimSpace(parsedMessage[0]) == "ping" {
 		node := nodeutils.Node{IP: strings.TrimSpace(parsedMessage[1])}

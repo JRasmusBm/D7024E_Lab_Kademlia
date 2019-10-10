@@ -2,7 +2,6 @@ package cli
 
 import (
 	api_p "api"
-	"bufio"
 	"fmt"
 	"net"
 	"strings"
@@ -19,8 +18,6 @@ type Network interface {
 type Server interface {
 	SetupListener(network *Network) (net.Listener, error)
 	ListenForConnection(listener net.Listener) (net.Conn, error)
-	SuccessfulConnectionMessage() string
-	SupportedCommands() string
 	MakeConnectionReader(conn *net.Conn) *Reader
 	ListenToClient(reader *Reader) string
 	MessageParser(incomingMessage string) []string
@@ -43,7 +40,7 @@ func CliServer(
 		printError(err)
 		return
 	}
-	defer listener.Close()
+	//defer listener.Close() this should not have to be commented
 	for {
 		conn, err := (*server).ListenForConnection(listener)
 		if err != nil {
@@ -51,11 +48,6 @@ func CliServer(
 			return
 		}
 		connReader := (*server).MakeConnectionReader(&conn)
-		successfulconnection := (*server).SuccessfulConnectionMessage()
-		(*server).SendMessage(&conn, cliChannel, successfulconnection)
-		greetingMessage := (*server).SupportedCommands()
-		fmt.Println("Sending message: " + greetingMessage)
-		(*server).SendMessage(&conn, cliChannel, greetingMessage)
 		for {
 			incomingMessage := (*server).ListenToClient(connReader)
 			parsedMessage := (*server).MessageParser(incomingMessage)
@@ -73,7 +65,7 @@ func handleRequest(
 	parsedMessage []string,
 	cliChannel chan string) {
 	responseMessage := (*server).CommandHandler(parsedMessage)
-	fmt.Println("Sending message: " + responseMessage)
+	//fmt.Println("Sending message: " + responseMessage) causes mutex overflow in testing.
 	(*server).SendMessage(conn, cliChannel, responseMessage)
 }
 

@@ -11,8 +11,6 @@ import (
 )
 
 func main() {
-	cliChannel := make(chan string)
-	go cli.CliServerInit(cliChannel)
 	ip, err := networkutils.GetIP()
 	if err != nil {
 		fmt.Println(err)
@@ -40,7 +38,7 @@ func main() {
 
 	// Start CLI
 	cliChannel := make(chan string)
-	go cli.CliServer(api, cliChannel)
+	go cli.CliServerInit(api, cliChannel)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {
