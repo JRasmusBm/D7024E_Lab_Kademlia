@@ -64,11 +64,8 @@ func (r *RealServer) CommandHandler(parsedMessage []string) string {
 		}
 		return "Value: " + value + ";"
 	} else if strings.TrimSpace(parsedMessage[0]) == "put" {
-		key, err := r.api.Store(strings.TrimSpace(parsedMessage[1]))
-		if err != nil {
-			return err.Error()
-		}
-		return "Stored at: " + key.String() + ";"
+		key, sent := r.api.Store(strings.TrimSpace(parsedMessage[1]))
+		return "Stored at: " + key.String() + " on " + string(sent) + " nodes.;"
 	} else if strings.TrimSpace(parsedMessage[0]) == "ping" {
 		node := nodeutils.Node{IP: strings.TrimSpace(parsedMessage[1])}
 		ok := r.api.Ping(&node)
