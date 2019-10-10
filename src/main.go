@@ -38,7 +38,7 @@ func main() {
 
 	// Start CLI
 	cliChannel := make(chan string)
-	go cli.CliServerInit(api, cliChannel)
+  go cli.CliServerInit(api, cliChannel)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {

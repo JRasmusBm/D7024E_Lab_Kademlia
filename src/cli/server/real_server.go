@@ -54,19 +54,19 @@ func (r *RealServer) CommandHandler(parsedMessage []string) string {
 	} else if strings.TrimSpace(parsedMessage[0]) == "exit" {
 		return "Terminating node.;"
 	} else if strings.TrimSpace(parsedMessage[0]) == "get" {
-		temp, err := hashing.ToKademliaID(strings.TrimSpace(parsedMessage[1]))
+		key, err := hashing.ToKademliaID(strings.TrimSpace(parsedMessage[1]))
 		if err != nil {
-			return "Incorrect kademlia ID"
+			return "Error: Invalid Kademlia ID;"
 		}
-		value, err := r.api.FindValue(temp)
+		value, err := r.api.FindValue(key)
 		if err != nil {
-			return "Incorrect kademlia ID"
+			return err.Error()
 		}
 		return "Value: " + value + ";"
 	} else if strings.TrimSpace(parsedMessage[0]) == "put" {
 		key, err := r.api.Store(strings.TrimSpace(parsedMessage[1]))
 		if err != nil {
-			return "Could not upload."
+			return err.Error()
 		}
 		return "Stored at: " + key.String() + ";"
 	} else if strings.TrimSpace(parsedMessage[0]) == "ping" {
