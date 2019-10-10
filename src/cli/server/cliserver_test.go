@@ -5,12 +5,14 @@ import (
 	"errors"
 	"testing"
 	"time"
+	networkutils "utils/network"
 )
 
 func TestServerInitDoesNotCrash(t *testing.T) {
 	cliChannel := make(chan string)
 	api := api_p.API{}
-	go CliServerInit(api, cliChannel)
+	var networkUtils networkutils.NetworkUtils = &networkutils.RealNetworkUtils{}
+	go CliServerInit(api, &networkUtils, cliChannel)
 	time.Sleep(100 * time.Millisecond)
 }
 

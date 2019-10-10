@@ -4,6 +4,7 @@ import (
 	api_p "api"
 	"fmt"
 	"net"
+	networkutils "utils/network"
 	"strings"
 )
 
@@ -25,9 +26,13 @@ type Server interface {
 	SendMessage(conn *net.Conn, cliChannel chan string, responseMessage string)
 }
 
-func CliServerInit(api api_p.API, cliChannel chan string) {
+func CliServerInit(
+	api api_p.API,
+	networkUtils *networkutils.NetworkUtils,
+	cliChannel chan string,
+) {
 	var network Network = &RealNetwork{}
-	var server Server = &RealServer{api: api}
+  var server Server = &RealServer{api: api, networkUtils: networkUtils}
 	CliServer(cliChannel, &network, &server)
 }
 

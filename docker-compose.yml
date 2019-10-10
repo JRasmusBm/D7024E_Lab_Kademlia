@@ -22,8 +22,7 @@ services:
     image: kademlia
     volumes:
       - ./coverage:/srv/node/coverage
-    command: sh -c "go test -coverprofile cover.out ./... ; 
-      go tool cover -html=cover.out -o coverage/cover.html"
+    command: sh -c "go test -cover ./..."
 
 networks:
   kademlia_network:

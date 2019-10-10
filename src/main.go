@@ -12,7 +12,8 @@ import (
 )
 
 func main() {
-	ip, err := networkutils.GetIP()
+  var networkUtils networkutils.NetworkUtils = &networkutils.RealNetworkUtils{}
+	ip, err := networkUtils.GetIP()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -41,7 +42,7 @@ func main() {
 
 	// Start CLI
 	cliChannel := make(chan string)
-  go cli.CliServerInit(api, cliChannel)
+	go cli.CliServerInit(api, &networkUtils, cliChannel)
 
 	// Busy wait in main thread until "exit" is sent by CLI
 	for {

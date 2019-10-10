@@ -13,11 +13,12 @@ import (
 )
 
 type RealServer struct {
-	api api_p.API
+	api          api_p.API
+	networkUtils *networkutils.NetworkUtils
 }
 
 func (r *RealServer) SetupListener(network *Network) (net.Listener, error) {
-	connHost, err := networkutils.GetIP()
+	connHost, err := (*r.networkUtils).GetIP()
 	if err != nil {
 		return nil, err
 	}
