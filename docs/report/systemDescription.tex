@@ -1,0 +1,39 @@
+\section{System description}\label{sec:system description}
+\textbf{Cliserver:} The cliserver listens for connections from a client.
+Once a client has connected it handles communication between the kademlia node
+and the client. Entering an unsupported command results in a string asking the
+client to enter another command. Currently supported commands are:
+
+\begin{itemize}
+  \item close: Closes the connection.
+  \item exit: Closes the connection and terminates the kademlia node.
+  \item help: Returns a list of supported commands.
+  \item put filename: Uploads the contents of the file to the kademlia node and
+attempts to store it in the kademlia network.
+  \item get hashnr: Attempts to retrieve the value of the given hashnr if
+it's stored in the kademlia network.
+  \item ping ipaddr: The kademlia node attempts to ping the given IP address.
+\end{itemize}
+
+The commands are handled by passing them to an API between the cliserver and
+the internal network of the node.\\\\
+\textbf{Network:} The internal network of a kademlia node consists of a receiver
+and a sender. The receiver will always be listening for new connections and to
+handle their incoming requests while the sender will attempt to make connections
+to nodes on the kademlia network and make requests. The following are the
+implemented RPCs:
+
+\begin{itemize}
+  \item ping: Pings a known node to see if it is still alive.
+  \item store: Attempts to store the hashed value on X nodes.
+  \item findnode: Attempts to find a node in the kademlia network, if it's unknown
+it requests the closest known node to find it.
+  \item findvalue: Attempts to find the given value on the kademlia network.
+  \item join: Attempts to join the kademlia network.
+\end{itemize}
+
+The kademlia network is encoded and decoded using json.\\\\
+\textbf{Utils:} The utils package contains all utility functions such as hashing,
+finding your own IP and more.\\\\
+\textbf{Testing:} We strive towards 100\% text coverage and most if not all
+previously mentioned system parts have 100\% coverage.

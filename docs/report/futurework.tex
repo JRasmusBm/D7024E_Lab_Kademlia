@@ -1,0 +1,16 @@
+\section{Limitations and future work}\label{sec:limitations and future work}
+Some current limitations and possible future work.
+
+\begin{itemize}
+  \item Cli: Encode and decode messages between the server and the client.
+For example by using json as we do in the kademlia network.
+  \item Security: Implement encryption across the network.
+  \item Performance: Implement full support for concurrency and thread safety.
+  \item RESTful API: To be able to integrate our kademlia implementation
+with web applications a HTTP interface could be developed.
+  \item Time-to-live: Implement TTL so that stored objects can be set to be deleted,
+as well as a refresh command/functionality that keeps objects alive until instructed
+otherwise.
+\end{itemize}
+
+Certainly other topics such as developing some kind of permission hierarchy between nodes in the network and more could be considered.
