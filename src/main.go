@@ -21,13 +21,13 @@ func main() {
 
 	node := nodeutils.NewNode(hashing.NewRandomKademliaID(), ip)
 	table := nodeutils.NewRoutingTable(node)
+	var store storage.Storage = &storage.RealStorage{Data: make(map[string]string)}
 
 	addNode := make(chan nodeutils.AddNodeOp)
 	findClosestNodes := make(chan nodeutils.FindClosestNodesOp)
-	sender := network.RealSender{AddNode: addNode, FindClosestNodes: findClosestNodes}
+	sender := network.RealSender{AddNode: addNode, FindClosestNodes: findClosestNodes, Storage: &store, Me: &node}
 	api := api_p.API{Sender: sender}
 
-	store := storage.RealStorage{Data: make(map[string]string)}
 
 	go nodeutils.TableSynchronizer(table, addNode, findClosestNodes)
 
@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// Start node receiver.
-	go network.Receiver(ip, sender, store)
+	go network.Receiver(ip, sender, &store)
 
 	// Start CLI
 	cliChannel := make(chan string)

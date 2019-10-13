@@ -2,6 +2,7 @@ package network
 
 type Message struct {
 	RPC string
+	Author string
 	Msg interface{}
 }
 
@@ -30,4 +31,19 @@ type StoreMsg struct {
 // JOIN message
 type JoinMsg struct {
 	Msg string
+}
+
+type JoinRespMsg struct {
+	Success bool
+	ID string
+}
+
+// FIND_VALUE message
+type FindValueMsg struct {
+	Key string
+}
+
+type FindValueRespMsg struct {
+	Content string
+	Nodes string
 }

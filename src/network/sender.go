@@ -1,38 +1,120 @@
 package network
 
 import (
+	"encoding/json"
 	"fmt"
-	"net"
+	"io"
+	"sync"
 	"utils/constants"
 	hashing "utils/hashing"
 	nodeutils "utils/node"
-	"encoding/json"
+	"utils/storage"
+	"utils/generic"
 )
 
-func dial(node *nodeutils.Node) (net.Conn, error) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", node.IP, constants.KADEMLIA_PORT))
-	if err != nil {
-		return nil, err
-	}
-
-	return conn, nil
+type Dialer interface {
+	DialIP(ip string) (io.ReadWriter, error)
 }
 
 type Sender interface {
+	Dial(node *nodeutils.Node) (io.ReadWriter, error)
 	Ping(node *nodeutils.Node, ch chan bool, errCh chan error)
-	Store(content string, nodes [constants.REPLICATION_FACTOR]*nodeutils.Node, ch chan int)
-	FindNode(id *hashing.KademliaID, ch chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error)
-	FindValue(key *hashing.KademliaID, ch chan string, errCh chan error)
-	Join(node *nodeutils.Node, ch chan bool, errCh chan error)
+	Store(content string, ch chan int)
+	FindNode(id *hashing.KademliaID, node *nodeutils.Node, ch chan []nodeutils.Node, errCh chan error)
+	FindValue(node *nodeutils.Node, key *hashing.KademliaID, successCh chan string, closerCh chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error)
+	Join(ip string, ch chan bool, errCh chan error)
+	LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]*nodeutils.Node
+	LookUpValue(key *hashing.KademliaID) string
 }
 
 type RealSender struct {
 	AddNode          chan nodeutils.AddNodeOp
 	FindClosestNodes chan nodeutils.FindClosestNodesOp
+	Storage          *storage.Storage
+	Me               *nodeutils.Node
+	Dialer           *Dialer
+}
+
+type queriedCandidates struct {
+	sync.RWMutex
+	nodes []nodeutils.Node
+}
+
+func (sender RealSender) Dial(node *nodeutils.Node) (io.ReadWriter, error) {
+	return (*sender.Dialer).DialIP(node.IP)
+}
+
+func (sender RealSender) LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]*nodeutils.Node {
+	resp := make(chan []*nodeutils.Node)
+	sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: id, Count: constants.CONCURRENCY_PARAM, Resp: resp}
+
+	askNodes := <-resp
+
+	candidates := nodeutils.NodeCandidates{}
+
+	queriedNodes := queriedCandidates{nodes: make([]nodeutils.Node, 0)}
+
+	var wg sync.WaitGroup
+
+	for _, node := range askNodes {
+		wg.Add(1)
+		go sender.recursiveLookup(id, *node, &candidates, &queriedNodes, &wg)
+	}
+
+	// Wait for each goroutine to finish
+	wg.Wait()
+  // fmt.Printf("%v\n", candidates.GetNodes(constants.CLOSESTNODES))
+  
+	return candidates.GetNodePointers(constants.CLOSESTNODES)
+}
+
+func (sender RealSender) recursiveLookup(id *hashing.KademliaID, node nodeutils.Node, candidates *nodeutils.NodeCandidates, queriedNodes *queriedCandidates, wg *sync.WaitGroup) {
+	defer wg.Done() // Informs main goroutine that we're done after execution
+
+	ch := make(chan []nodeutils.Node)
+	errCh := make(chan error)
+	go sender.FindNode(id, &node, ch, errCh)
+	select {
+	case nodes := <-ch:
+		// Calculate distance from id for each node, add to candidates and sort.
+		var uniqueNodes []nodeutils.Node
+		for _, foundNode := range nodes {
+			// If we already have the node in our list of candidates, ignore it.
+			// Have to use the mutex here in order to properly avoid duplicates.
+			candidates.RLock()
+			if nodeutils.NodeInArr(foundNode, candidates.Nodes) {
+				candidates.RUnlock()
+				continue
+			}
+			candidates.RUnlock()
+
+			foundNode.CalcDistance(id)
+			uniqueNodes = append(uniqueNodes, foundNode)
+		}
+		candidates.Append(uniqueNodes)
+		candidates.Sort()
+	case <-errCh:
+		// Connection to node failed, do nothing.
+	}
+
+	queriedNodes.Lock()
+	queriedNodes.nodes = append(queriedNodes.nodes, node)
+	qNodes := queriedNodes.nodes
+	queriedNodes.Unlock()
+
+	// Go through current k-closest nodes and query the first one that hasn't been queried yet.
+	kNodes := candidates.GetNodes(constants.CLOSESTNODES)
+	for _, kNode := range kNodes {
+		if !nodeutils.NodeInArr(kNode, qNodes) {
+			wg.Add(1)
+			sender.recursiveLookup(id, kNode, candidates, queriedNodes, wg)
+			return
+		}
+	}
 }
 
 func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool, errCh chan error) {
-	conn, err := dial(node)
+	conn, err := sender.Dial(node)
 	if err != nil {
 		errCh <- err
 		return
@@ -52,20 +134,23 @@ func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool, errCh chan err
 		errCh <- err
 	}
 
+	sender.AddNode <- nodeutils.AddNodeOp{AddedNode: *node}
 	ch <- (msg.Msg == "PONG")
 }
 
-func (sender RealSender) Store(content string, nodes [constants.REPLICATION_FACTOR]*nodeutils.Node, ch chan int) {
-	var conn net.Conn
+func (sender RealSender) Store(content string, ch chan int) {
+	var conn io.ReadWriter
 	var err error
 	sent := 0
+	id, _ := hashing.NewKademliaID(content)
+	nodes := sender.LookUp(id)
 	for _, node := range nodes {
 		if node == nil {
 			continue
 		}
 
-		conn, err = dial(node)
-		if err == nil {
+		conn, err = sender.Dial(node)
+		if err != nil {
 			continue
 		}
 
@@ -76,14 +161,10 @@ func (sender RealSender) Store(content string, nodes [constants.REPLICATION_FACT
 	ch <- sent
 }
 
-func (sender RealSender) FindNode(id *hashing.KademliaID, ch chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error) {
-	fmt.Printf("Finding Node %s", id)
-	
-	resp := make(chan []nodeutils.Node)
-	sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: id, Count: 1, Resp: resp}
-	node := (<- resp)[0]
+func (sender RealSender) FindNode(id *hashing.KademliaID, node *nodeutils.Node, ch chan []nodeutils.Node, errCh chan error) {
+	// fmt.Printf("Finding Node %s", node.ID.String())
 
-	conn, err := dial(&node)
+	conn, err := sender.Dial(node)
 	if err != nil {
 		errCh <- err
 		return
@@ -107,22 +188,98 @@ func (sender RealSender) FindNode(id *hashing.KademliaID, ch chan [constants.CLO
 	}
 
 	// Add all given nodes to routing table
-	var result chan bool
 	for _, node := range nodes {
-		sender.AddNode <- nodeutils.AddNodeOp{AddedNode: *node, Resp: result}
+		sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
 	}
 
 	ch <- nodes
 }
 
-func (sender RealSender) FindValue(key *hashing.KademliaID, ch chan string, errCh chan error) {
-	fmt.Printf("Finding Value %s", key)
-	ch <- "Random value"
-	return
+func (sender RealSender) FindValue(node *nodeutils.Node, key *hashing.KademliaID, successCh chan string, closerCh chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error) {
+	readCh := make(chan string)
+	readErrCh := make(chan error)
+	go (*sender.Storage).Read(key.String(), readCh, readErrCh)
+	select {
+	case content := <-readCh:
+		successCh <- content
+		return
+	case <-readErrCh:
+		// Do nothing
+	}
+
+	conn, err := sender.Dial(node)
+	if err != nil {
+		errCh <- err
+		return
+	}
+
+	encoder := json.NewEncoder(conn)
+	decoder := json.NewDecoder(conn)
+
+	// Send RPC message
+	encoder.Encode(Message{RPC: "FIND_VALUE", Msg: FindValueMsg{Key: key.String()}})
+
+	var msg FindValueRespMsg
+	err = decoder.Decode(&msg)
+	if err != nil {
+		errCh <- err
+		return
+	}
+  fmt.Printf(msg.Content)
+
+	if msg.Content == "" {
+		nodes, _ := nodeutils.FromStrings(msg.Nodes)
+		var result [constants.CLOSESTNODES]*nodeutils.Node
+		for i, node := range nodes {
+			result[i] = &node
+		}
+		closerCh <- result
+	} else {
+		successCh <- msg.Content
+	}
 }
 
-func (sender RealSender) Join(node *nodeutils.Node, ch chan bool, errCh chan error) {
-	conn, err := dial(node)
+func (sender RealSender) LookUpValue(key *hashing.KademliaID) string {
+	// Get the k-closest nodes.
+	kNodes := sender.LookUp(key)
+	// fmt.Printf("%#v\n", kNodes)
+	var wg sync.WaitGroup
+	var content string
+	var mutex sync.RWMutex
+
+	// NOTE: Currently this will spawn k goroutines, but there should either be 1 or alpha according to the paper.
+	// Therefore we should probably make sure it only spawns alpha goroutines in a similar fashion
+	// to how it's done in recursiveLookup.
+	for _, node := range kNodes {
+		if node != nil {
+      wg.Add(1)
+			go func(n *nodeutils.Node) {
+				defer wg.Done()
+				successCh := make(chan string)
+				closerCh := make(chan [constants.CLOSESTNODES]*nodeutils.Node)
+				errCh := make(chan error)
+
+				go sender.FindValue(n, key, successCh, closerCh, errCh)
+				select {
+				case foundContent := <-successCh:
+					mutex.Lock()
+					content = foundContent
+					mutex.Unlock()
+				case <-closerCh:
+					// Do nothing, node didn't have content (and we don't recursively find new nodes as this is already done previously).
+				case <-errCh:
+					// Do nothing, couldn't connect to node (?!)
+				}
+			}(node)
+		}
+	}
+
+	wg.Wait()
+	return content
+}
+
+func (sender RealSender) Join(ip string, ch chan bool, errCh chan error) {
+	conn, err := (*sender.Dialer).DialIP(ip)
 	if err != nil {
 		errCh <- err
 	}
@@ -130,14 +287,20 @@ func (sender RealSender) Join(node *nodeutils.Node, ch chan bool, errCh chan err
 	decoder := json.NewDecoder(conn)
 	encoder := json.NewEncoder(conn)
 
-	encoder.Encode(Message{RPC: "JOIN", Msg: JoinMsg{Msg: node.String()}})
+	encoder.Encode(Message{RPC: "JOIN", Msg: JoinMsg{Msg: sender.Me.String()}})
 
-	var msg AckMsg
+	var msg JoinRespMsg
 	err = decoder.Decode(&msg)
 	if err != nil {
 		ch <- false
 		return
 	}
+	key, _ := hashing.ToKademliaID(msg.ID)
+	node := nodeutils.NewNode(key, ip)
+	sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
+
+	// Run LookUp on myself to fill up k-buckets according to Kademlia specification.
+	sender.LookUp(sender.Me.ID)
 
 	ch <- msg.Success
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"utils/constants"
 	"utils/hashing"
 )
@@ -36,6 +37,22 @@ func (node *Node) Less(otherNode *Node) bool {
 // String returns a simple string representation of a Node
 func (node *Node) String() string {
 	return fmt.Sprintf(`node("%s","%s")`, node.ID, node.IP)
+}
+
+// ToStrings returns a string representation of an array of Nodes
+func ToStrings(nodes []*Node) string {
+	nodeStr := ""
+	first := true
+	for _, node := range nodes {
+		if node != nil {
+			if !first {
+				nodeStr += " "
+			}
+			nodeStr += node.String()
+			first = false
+		}
+	}
+	return nodeStr
 }
 
 // Returns a Node instance from a string representation
@@ -73,17 +90,17 @@ func FromString(str string) (Node, error) {
 
 // Returns an array of nodes from string representation of
 // nodes separated by spaces.
-func FromStrings(str string) ([constants.CLOSESTNODES]*Node, error) {
+func FromStrings(str string) ([]Node, error) {
 	nodes_string := strings.Split(str, " ")
-	found_nodes := [constants.CLOSESTNODES]*Node{}
-	for i, str := range nodes_string {
-		node, err := FromString(str)
+	found_nodes := []Node{}
+	var node Node
+	var err error
+	for _, str := range nodes_string {
+		node, err = FromString(str)
 		if err != nil {
-			return [constants.CLOSESTNODES]*Node{}, err
+			return []Node{}, err
 		}
-		fmt.Printf("i: %d", i)
-		fmt.Printf("%v,\n ", node)
-		found_nodes[i] = &node
+		found_nodes = append(found_nodes, node)
 	}
 
 	fmt.Printf("%v,\n ", found_nodes)
@@ -94,37 +111,86 @@ func FromStrings(str string) ([constants.CLOSESTNODES]*Node, error) {
 // NodeCandidates definition
 // stores an array of Nodes
 type NodeCandidates struct {
-	nodes []Node
+	sync.RWMutex
+	Nodes []Node
 }
 
 // Append an array of Nodes to the NodeCandidates
 func (candidates *NodeCandidates) Append(nodes []Node) {
-	candidates.nodes = append(candidates.nodes, nodes...)
+	candidates.Lock()
+	candidates.Nodes = append(candidates.Nodes, nodes...)
+	candidates.Unlock()
+}
+
+// GetNodePointers returns the first count number of Nodes
+func (candidates *NodeCandidates) GetNodePointers(count int) [constants.CLOSESTNODES]*Node {
+  candidates.RLock()
+  var result [constants.CLOSESTNODES]*Node
+	for i, node := range candidates.GetNodes(count) {
+		result[i] = &node
+	}
+  candidates.RUnlock()
+	return result
 }
 
 // GetNodes returns the first count number of Nodes
 func (candidates *NodeCandidates) GetNodes(count int) []Node {
-	return candidates.nodes[:count]
+	candidates.RLock()
+	var nodes []Node
+	if count > len(candidates.Nodes) {
+		nodes = candidates.Nodes
+	} else {
+		nodes = candidates.Nodes[:count]
+	}
+	candidates.RUnlock()
+	return nodes
 }
 
 // Sort the Nodes in NodeCandidates
 func (candidates *NodeCandidates) Sort() {
-	sort.Sort(candidates)
+	candidates.RLock()
+	tempCandidates := NodeCandidates{
+		Nodes: candidates.Nodes,
+	}
+  candidates.RUnlock()
+
+	sort.Sort(&tempCandidates)
+	candidates.Lock()
+	candidates.Nodes = tempCandidates.Nodes
+	candidates.Unlock()
+
 }
 
 // Len returns the length of the NodeCandidates
 func (candidates *NodeCandidates) Len() int {
-	return len(candidates.nodes)
+	candidates.RLock()
+	length := len(candidates.Nodes)
+	candidates.RUnlock()
+	return length
 }
 
 // Swap the position of the Nodes at i and j
 // WARNING does not check if either i or j is within range
 func (candidates *NodeCandidates) Swap(i, j int) {
-	candidates.nodes[i], candidates.nodes[j] = candidates.nodes[j], candidates.nodes[i]
+	candidates.Lock()
+	candidates.Nodes[i], candidates.Nodes[j] = candidates.Nodes[j], candidates.Nodes[i]
+	candidates.Unlock()
 }
 
 // Less returns true if the Node at index i is smaller than
 // the Node at index j
 func (candidates *NodeCandidates) Less(i, j int) bool {
-	return candidates.nodes[i].Less(&candidates.nodes[j])
+	candidates.RLock()
+	isLess := candidates.Nodes[i].Less(&candidates.Nodes[j])
+	candidates.RUnlock()
+	return isLess
+}
+
+func NodeInArr(nodeA Node, nodes []Node) bool {
+  for _, nodeB := range nodes {
+    if nodeA.String() == nodeB.String() {
+      return true
+    }
+  }
+  return false
 }

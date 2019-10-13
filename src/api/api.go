@@ -33,6 +33,8 @@ func (api API) Store(content string) (*hashing.KademliaID, int) {
 	go api.Sender.Store(content, nodes, ch)
 	sent := <-ch
 
+	key, _ := hashing.NewKademliaID(content)
+
 	return key, sent
 }
 
@@ -51,25 +53,14 @@ func (api API) FindNode(id *hashing.KademliaID) ([constants.CLOSESTNODES]*nodeut
 }
 
 func (api API) FindValue(key *hashing.KademliaID) (string, error) {
-	ch := make(chan string)
-	errCh := make(chan error)
-	// TODO: Implement FindValue
-
-	go api.Sender.FindValue(key, ch, errCh)
-	select {
-	case value := <-ch:
-		return value, nil
-	case err := <-errCh:
-		return "", err
-	}
+	return api.Sender.LookUpValue(key), nil
 }
 
 func (api API) Join(ip string) bool {
 	// TODO: Implement this
 	ch := make(chan bool)
 	errCh := make(chan error)
-	node := nodeutils.Node{IP: "172.19.1.2"}
-	go api.Sender.Join(&node, ch, errCh)
+	go api.Sender.Join(ip, ch, errCh)
 	select {
 	case ok := <-ch:
 		return ok

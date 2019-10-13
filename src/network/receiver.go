@@ -1,19 +1,19 @@
 package network
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
 	"utils/constants"
 	"utils/hashing"
 	nodeutils "utils/node"
-	"encoding/json"
-	"log"
 	"utils/storage"
 )
 
-func Receiver(ip string, sender RealSender, store storage.Storage) {
+func Receiver(ip string, sender RealSender, store *storage.Storage) {
 	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, constants.KADEMLIA_PORT))
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
@@ -31,6 +31,7 @@ func Receiver(ip string, sender RealSender, store storage.Storage) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		author, _ := nodeutils.FromString(msg.Author)
 
 		encoder := json.NewEncoder(conn)
 
@@ -42,14 +43,13 @@ func Receiver(ip string, sender RealSender, store storage.Storage) {
 
 		case "FIND_NODE": // Return the x closest known nodes in a sequence separated by spaces.
 			findNodeMsg := msg.Msg.(FindNodeMsg)
-			target := hashing.NewKademliaID(findNodeMsg.ID)
+			target, _ := hashing.ToKademliaID(findNodeMsg.ID)
 			var closest_nodes_ch chan []nodeutils.Node
-			sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
+			sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES}
 			closest_nodes := <-closest_nodes_ch
 			response := ""
 			for i, node := range closest_nodes {
-				var result chan bool
-				sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
+				sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
 
 				if i != len(closest_nodes)-1 {
 					response += node.String() + "  "
@@ -63,23 +63,52 @@ func Receiver(ip string, sender RealSender, store storage.Storage) {
 			storeMsg := msg.Msg.(StoreMsg)
 			kid := hashing.NewKademliaID(storeMsg.Data)
 			key := kid.String()
-			store.Write(key, storeMsg.Data)
+			(*store).Write(key, storeMsg.Data)
+
+			sender.AddNode <- nodeutils.AddNodeOp{AddedNode: author}
+
 			encoder.Encode(AckMsg{Success: true})
 
 		case "JOIN": // Add a node to routing table/bucket list (if possible) and acknowledge.
 			joinMsg := msg.Msg.(JoinMsg)
 			node, err := nodeutils.FromString(joinMsg.Msg)
-			var result chan bool
-			sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node, Resp: result}
 
-			var response string
+			result := make(chan bool)
+			sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
+
+			var success bool
 			if <-result && err == nil {
-				response = "SUCCESS;"
+				success = true
 			} else {
-				response = "FULL;"
+				success = false
 			}
 
-			conn.Write([]byte(response))
+			encoder.Encode(JoinRespMsg{Success: success, ID: sender.Me.ID.String()})
+
+		case "FIND_VALUE": // Given a kademlia id for data, return data or return x closest nodes.
+			findValueMsg := msg.Msg.(FindValueMsg)
+			key, _ := hashing.ToKademliaID(findValueMsg.Key)
+
+			ch := make(chan string)
+			errCh := make(chan error)
+			(*store).Read(key.String(), ch, errCh)
+
+			select {
+			case content := <-ch:
+				encoder.Encode(FindValueRespMsg{Content: content, Nodes: ""})
+			case <-errCh:
+				resp := make(chan []*nodeutils.Node)
+				sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{
+					Target: key,
+					Count:  constants.CLOSESTNODES,
+					Resp:   resp,
+				}
+				closestNodes := <-resp
+				encoder.Encode(FindValueRespMsg{
+					Content: "",
+					Nodes:   nodeutils.ToStrings(closestNodes)},
+				)
+			}
 		}
 	}
 }

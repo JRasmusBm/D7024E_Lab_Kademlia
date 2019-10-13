@@ -72,13 +72,12 @@ func (routingTable *RoutingTable) getBucketIndex(id *hashing.KademliaID, idLengt
 
 type AddNodeOp struct {
 	AddedNode Node
-	Resp      chan bool
 }
 
 type FindClosestNodesOp struct {
 	Target *hashing.KademliaID
 	Count  int
-	Resp   chan []Node
+	Resp   chan []*Node
 }
 
 func TableSynchronizer(rTable *RoutingTable, addNodes chan AddNodeOp, findClosestNodes chan FindClosestNodesOp) {
@@ -86,9 +85,12 @@ func TableSynchronizer(rTable *RoutingTable, addNodes chan AddNodeOp, findCloses
 		select {
 		case addNode := <-addNodes:
 			rTable.AddNode(addNode.AddedNode)
-			addNode.Resp <- true
 		case findClosestNode := <-findClosestNodes:
-			findClosestNode.Resp <- rTable.FindClosestNodes(findClosestNode.Target, findClosestNode.Count)
+			result := make([]*Node, 0)
+			for i, node := range rTable.FindClosestNodes(findClosestNode.Target, findClosestNode.Count) {
+				result[i] = &node
+			}
+			findClosestNode.Resp <- result
 		}
 	}
 }
