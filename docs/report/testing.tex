@@ -1,0 +1,24 @@
+\section{Testing}\label{sec:testing}
+
+It was decided to prioritize testing and quality control throughout the
+project. This, because none of the group participants had previously
+worked in Golang and it seemed a very beneficial way to learn the ins
+and outs of robust software engineering in the language. In the end,
+a near 100\% unit test coverage was achieved.
+
+Since Golang is a statically typed language, common techniques of monkey
+patching or spying are in general not available.  These have to be
+replaced with idiomatic Golang. 
+
+In Golang, the main way to achieve dependency injection is by
+the use of interfaces. An \mintinline{go}{interface} is a way to specify
+the abstract behavior of a type, instead of its concrete implementation.
+It allows for changing the behavior of a method by calling it with a
+different \mintinline{go}{struct} (concrete type), implementing an
+interface specified by the method.
+
+Thus, well tested programs can be constructed by introducing boundaries
+between the I/O layers of the application and its business logic.
+Integration tests can then be used to test the ``glue''  between the
+layers, and unit tests can be employed to ensure that all the various
+aspects of a given method are covered.
