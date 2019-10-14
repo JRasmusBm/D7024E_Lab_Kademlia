@@ -4,6 +4,7 @@ import (
 	api_p "api"
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -61,12 +62,12 @@ func (r *RealServer) CommandHandler(parsedMessage []string) string {
 		}
 		value, err := r.api.FindValue(key)
 		if err != nil {
-			return err.Error()
+			return err.Error() + ";"
 		}
 		return "Value: " + value + ";"
 	} else if strings.TrimSpace(parsedMessage[0]) == "put" {
 		key, sent := r.api.Store(strings.TrimSpace(parsedMessage[1]))
-		return "Stored at: " + key.String() + " on " + string(sent) + " nodes.;"
+		return fmt.Sprintf("Stored at: %v on %v nodes.;", key.String(), sent)
 	} else if strings.TrimSpace(parsedMessage[0]) == "ping" {
 		node := nodeutils.Node{IP: strings.TrimSpace(parsedMessage[1])}
 		ok := r.api.Ping(&node)
@@ -90,25 +91,20 @@ func supported_commands() string {
 		"Example: put test.txt;"
 }
 
-func (r *RealServer) SendMessage(conn *net.Conn, cliChannel chan string, responseMessage string) {
+func (r *RealServer) SendMessage(conn *io.Writer, responseMessage string) {
+	_, err := (*conn).Write([]byte(responseMessage))
+	if err != nil {
+		fmt.Println("Was unable to send message.")
+	}
+}
+
+func (r *RealServer) CloseConnection(conn *io.Closer, cliChannel chan string, responseMessage string) {
 	if responseMessage == "Closing connection.;" {
-		_, err := (*conn).Write([]byte(responseMessage))
-		if err != nil {
-			fmt.Println("Was unable to send message.")
-		}
 		(*conn).Close()
 		fmt.Println("Connection closed.")
 	} else if responseMessage == "Terminating node.;" {
-		_, err := (*conn).Write([]byte(responseMessage))
-		if err != nil {
-			fmt.Println("Was unable to send message.")
-		}
 		(*conn).Close()
 		cliChannel <- "exit"
-	} else {
-		_, err := (*conn).Write([]byte(responseMessage))
-		if err != nil {
-			fmt.Println("Was unable to send message.")
-		}
 	}
+	return
 }

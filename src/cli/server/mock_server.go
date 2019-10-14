@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"io"
 	"net"
 )
 
@@ -45,6 +46,10 @@ func (m *MockServer) CommandHandler(parsedMessage []string) string {
 	return m.CommandHandlerResult
 }
 
-func (m *MockServer) SendMessage(conn *net.Conn, cliChannel chan string, responseMessage string) {
+func (m *MockServer) SendMessage(conn *io.Writer, responseMessage string) {
+	return
+}
+
+func (m *MockServer) CloseConnection(conn *io.Closer, cliChannel chan string, responseMessage string) {
 	return
 }

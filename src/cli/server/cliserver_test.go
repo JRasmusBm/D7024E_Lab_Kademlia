@@ -21,8 +21,7 @@ func TestServerDoesNotCrash(t *testing.T) {
 	var server Server = &MockServer{
 		MessageParserResult: []string{""},
 	}
-	var network Network = &MockNetwork{}
-	go CliServer(cliChannel, &network, &server)
+	go CliServer(cliChannel, nil, &server)
 	time.Sleep(100 * time.Millisecond)
 }
 
@@ -33,8 +32,7 @@ func TestServerDoesNotCrashListenerError(t *testing.T) {
 		SetupListenerErr:    errors.New("Random Error"),
 		MessageParserResult: []string{""},
 	}
-	var network Network = &MockNetwork{}
-	go CliServer(cliChannel, &network, &server)
+	go CliServer(cliChannel, nil, &server)
 	time.Sleep(100 * time.Millisecond)
 }
 
@@ -45,8 +43,7 @@ func TestServerDoesNotCrashListenForConnectionError(t *testing.T) {
 		ListenForConnectionErr:    errors.New("Random Error"),
 		MessageParserResult:       []string{""},
 	}
-	var network Network = &MockNetwork{}
-	go CliServer(cliChannel, &network, &server)
+	go CliServer(cliChannel, nil, &server)
 	time.Sleep(100 * time.Millisecond)
 }
 
@@ -55,7 +52,6 @@ func TestServerDoesNotCrashCloseStatement(t *testing.T) {
 	var server Server = &MockServer{
 		MessageParserResult: []string{"close"},
 	}
-	var network Network = &MockNetwork{}
-	go CliServer(cliChannel, &network, &server)
+	go CliServer(cliChannel, nil, &server)
 	time.Sleep(100 * time.Millisecond)
 }

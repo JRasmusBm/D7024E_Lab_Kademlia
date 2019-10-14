@@ -3,9 +3,10 @@ package cli
 import (
 	api_p "api"
 	"fmt"
+	"io"
 	"net"
-	networkutils "utils/network"
 	"strings"
+	networkutils "utils/network"
 )
 
 type Reader interface {
@@ -23,7 +24,8 @@ type Server interface {
 	ListenToClient(reader *Reader) string
 	MessageParser(incomingMessage string) []string
 	CommandHandler(parsedMessage []string) string
-	SendMessage(conn *net.Conn, cliChannel chan string, responseMessage string)
+	SendMessage(conn *io.Writer, responseMessage string)
+	CloseConnection(conn *io.Closer, cliChannel chan string, responseMessage string)
 }
 
 func CliServerInit(
@@ -32,7 +34,7 @@ func CliServerInit(
 	cliChannel chan string,
 ) {
 	var network Network = &RealNetwork{}
-  var server Server = &RealServer{api: api, networkUtils: networkUtils}
+	var server Server = &RealServer{api: api, networkUtils: networkUtils}
 	CliServer(cliChannel, &network, &server)
 }
 
@@ -71,7 +73,10 @@ func handleRequest(
 	cliChannel chan string) {
 	responseMessage := (*server).CommandHandler(parsedMessage)
 	//fmt.Println("Sending message: " + responseMessage) causes mutex overflow in testing.
-	(*server).SendMessage(conn, cliChannel, responseMessage)
+	var writer io.Writer = *conn
+	var closer io.Closer = *conn
+	(*server).SendMessage(&writer, responseMessage)
+	(*server).CloseConnection(&closer, cliChannel, responseMessage)
 }
 
 func printError(err error) {

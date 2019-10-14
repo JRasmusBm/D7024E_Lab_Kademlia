@@ -1,9 +1,18 @@
 package cli
 
 import (
+	api_p "api"
 	"errors"
+	"fmt"
+	"io"
+	"net"
+	"network"
 	"testing"
 	"time"
+	"utils/constants"
+	"utils/hashing"
+	networkutils "utils/network"
+	nodeutils "utils/node"
 )
 
 func TestListenToClientDoesNotCrash(t *testing.T) {
@@ -124,4 +133,166 @@ func TestMessageParserSeveralWords(t *testing.T) {
 			expectedsecond,
 			actual)
 	}
+}
+
+// SETUP LISTENER TESTS
+
+func TestSetupListenerError(t *testing.T) {
+	var networkUtils networkutils.NetworkUtils = &networkutils.MockNetworkUtils{
+		Err: errors.New("TestSetupListenerError"),
+	}
+	var server Server = &RealServer{networkUtils: &networkUtils}
+	_, err := server.SetupListener(nil)
+	if err == nil {
+		t.Errorf("Should throw the error")
+	}
+}
+
+// LISTEN FOR CONNECTION TESTS
+
+func TestListenForConnection(t *testing.T) {
+	var server Server = &RealServer{}
+	var listener net.Listener = &MockListener{}
+	listener.Close()
+	listener.Addr()
+	_, err := server.ListenForConnection(listener)
+	if err == nil {
+		t.Errorf("Mock connection, accept should yield an error")
+	}
+}
+
+// MAKE CONNECTION READER TESTS
+
+func TestMakeConnectionReader(t *testing.T) {
+	var server Server = &RealServer{}
+	conn, _ := net.Dial("tcp", "1.2.3.4")
+	actual := server.MakeConnectionReader(&conn)
+	if actual == nil {
+		t.Errorf("Expected %#v not to be nil", actual)
+	}
+}
+
+// COMMAND HANDLER TESTS
+
+func TestCommandGetInvalidID(t *testing.T) {
+	sender := &network.MockSender{}
+	api := api_p.API{Sender: sender}
+	var server Server = &RealServer{api: api}
+	expected := "Error: Invalid Kademlia ID;"
+	actual := server.CommandHandler([]string{"get", "123"})
+	if expected != actual {
+		t.Errorf("Expected %v got %v", expected, actual)
+	}
+}
+
+func TestCommandFindValueFailed(t *testing.T) {
+	sender := &network.MockSender{FindValueErr: errors.New("TestFindValueFailed")}
+	api := api_p.API{Sender: sender}
+	var server Server = &RealServer{api: api}
+	actual := server.CommandHandler(
+		[]string{"get", "0000000000000000000000000000000000000000"},
+	)
+	expected := "TestFindValueFailed;"
+	if expected != actual {
+		t.Errorf("Expected %v got %v", expected, actual)
+	}
+}
+
+func TestCommandFindValueSuccessful(t *testing.T) {
+	sender := &network.MockSender{FindValueResponse: "TestFindValueSuccessful"}
+	api := api_p.API{Sender: sender}
+	var server Server = &RealServer{api: api}
+	actual := server.CommandHandler(
+		[]string{"get", "0000000000000000000000000000000000000000"},
+	)
+	expected := "Value: TestFindValueSuccessful;"
+	if expected != actual {
+		t.Errorf("Expected %v got %v", expected, actual)
+	}
+}
+
+func TestCommandStore(t *testing.T) {
+	str := "TestFindValueSuccessful"
+	key := hashing.NewKademliaID(str)
+	sender := &network.MockSender{
+		StoreSent: 2,
+		FindNodeResponse: [constants.REPLICATION_FACTOR]*nodeutils.Node{
+			nil,
+			nil,
+			nil,
+		},
+	}
+	api := api_p.API{Sender: sender}
+	var server Server = &RealServer{api: api}
+	actual := server.CommandHandler(
+		[]string{"put", str},
+	)
+	expected := fmt.Sprintf("Stored at: %v on %v nodes.;", key, 2)
+	if actual != expected {
+		t.Errorf("Expected %v got %v", expected, actual)
+	}
+}
+
+func TestCommandPing(t *testing.T) {
+	sender := &network.MockSender{
+		PingResponse: true,
+	}
+	api := api_p.API{Sender: sender}
+	var server Server = &RealServer{api: api}
+	actual := server.CommandHandler(
+		[]string{"ping", "1.2.3.4"},
+	)
+	expected := fmt.Sprintf("Online: %v;", true)
+	if actual != expected {
+		t.Errorf("Expected %v got %v", expected, actual)
+	}
+}
+
+// SEND MESSAGE TESTS
+
+func TestSendsTheCorrectMessage(t *testing.T) {
+	ch := make(chan []byte)
+	var writer io.Writer = &MockWriter{ch: ch}
+	var server Server = &RealServer{}
+	expected := "abc"
+	go server.SendMessage(&writer, expected)
+	actual := <-ch
+	if string(expected) != string(actual) {
+		t.Errorf("Expected %v got %v", expected, actual)
+	}
+}
+
+func TestDoesNotCrashOnError(t *testing.T) {
+	ch := make(chan []byte)
+	var writer io.Writer = &MockWriter{
+		ch:       ch,
+		WriteErr: errors.New("TestDoesNotCrashOnError"),
+	}
+	var server Server = &RealServer{}
+	go server.SendMessage(&writer, "abc")
+	<-ch
+}
+
+// CLOSE CONNECTION TESTS
+
+func TestCloseConnectionShouldNotClose(t *testing.T) {
+	var server Server = &RealServer{}
+	var closer io.Closer = &MockCloser{}
+	cliChannel := make(chan string)
+	server.CloseConnection(&closer, cliChannel, "")
+}
+
+func TestCloseConnection(t *testing.T) {
+	var server Server = &RealServer{}
+	var closer io.Closer = &MockCloser{}
+	cliChannel := make(chan string)
+	server.CloseConnection(&closer, cliChannel, "Closing connection.;")
+}
+
+func TestTerminateNode(t *testing.T) {
+	var server Server = &RealServer{}
+	var closer io.Closer = &MockCloser{}
+	cliChannel := make(chan string)
+	go server.CloseConnection(&closer, cliChannel, "Terminating node.;")
+	<-cliChannel
 }
