@@ -57,7 +57,6 @@ func (api API) FindValue(key *hashing.KademliaID) (string, error) {
 }
 
 func (api API) Join(ip string) bool {
-	// TODO: Implement this
 	ch := make(chan bool)
 	errCh := make(chan error)
 	go api.Sender.Join(ip, ch, errCh)
