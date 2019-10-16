@@ -380,7 +380,7 @@ func TestLookUpValue(t *testing.T) {
 		AddNode:          addNode,
 		FindClosestNodes: findClosestNodes,
 	}
-	key, _ := hashing.NewKademliaID(expected)
+	key := hashing.NewKademliaID(expected)
 	actual := sender.LookUpValue(key)
 	if expected != actual {
 		t.Errorf("Expected %v got %v", expected, actual)
@@ -445,7 +445,7 @@ func TestLookUpValueNodes(t *testing.T) {
 		AddNode:          addNode,
 		FindClosestNodes: findClosestNodes,
 	}
-	key, _ := hashing.NewKademliaID(expected)
+	key := hashing.NewKademliaID(expected)
 	actual := sender.LookUpValue(key)
 	if "" != actual {
 		t.Errorf("Should not return value when not found, actual: %v", actual)
@@ -516,7 +516,7 @@ func TestLookUpValueDialError(t *testing.T) {
 		AddNode:          addNode,
 		FindClosestNodes: findClosestNodes,
 	}
-	key, _ := hashing.NewKademliaID(expected)
+	key := hashing.NewKademliaID(expected)
 	actual := sender.LookUpValue(key)
 	if "" != actual {
 		t.Errorf("Expected empty string got %v", actual)
@@ -585,7 +585,7 @@ func TestLookUpValueDecodeError(t *testing.T) {
 		AddNode:          addNode,
 		FindClosestNodes: findClosestNodes,
 	}
-	key, _ := hashing.NewKademliaID(expected)
+	key := hashing.NewKademliaID(expected)
 	actual := sender.LookUpValue(key)
 	if "" != actual {
 		t.Errorf("Expected empty string got %v", actual)
@@ -650,7 +650,7 @@ func TestLookUpValueEmptyString(t *testing.T) {
 		AddNode:          addNode,
 		FindClosestNodes: findClosestNodes,
 	}
-	key, _ := hashing.NewKademliaID(expected)
+	key := hashing.NewKademliaID(expected)
 	actual := sender.LookUpValue(key)
 	if expected != actual {
 		t.Errorf("Expected %v got %v", expected, actual)
@@ -715,7 +715,7 @@ func TestLookUpValueCaseContent(t *testing.T) {
 		AddNode:          addNode,
 		FindClosestNodes: findClosestNodes,
 	}
-	key, _ := hashing.NewKademliaID(expected)
+	key := hashing.NewKademliaID(expected)
 	actual := sender.LookUpValue(key)
 	if expected != actual {
 		t.Errorf("Expected %v got %v", expected, actual)

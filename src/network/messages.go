@@ -1,9 +1,9 @@
 package network
 
 type Message struct {
-	RPC string
+	RPC    string
 	Author string
-	Msg interface{}
+	Msg    interface{}
 }
 
 type AckMsg struct {
@@ -35,7 +35,8 @@ type JoinMsg struct {
 
 type JoinRespMsg struct {
 	Success bool
-	ID string
+	ID      string
+	IP      string
 }
 
 // FIND_VALUE message
@@ -45,5 +46,5 @@ type FindValueMsg struct {
 
 type FindValueRespMsg struct {
 	Content string
-	Nodes string
+	Nodes   string
 }

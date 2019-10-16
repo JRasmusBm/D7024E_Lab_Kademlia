@@ -9,7 +9,6 @@ import (
 	hashing "utils/hashing"
 	nodeutils "utils/node"
 	"utils/storage"
-	"utils/generic"
 )
 
 type Dialer interface {
@@ -46,9 +45,12 @@ func (sender RealSender) Dial(node *nodeutils.Node) (io.ReadWriter, error) {
 
 func (sender RealSender) LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]*nodeutils.Node {
 	resp := make(chan []*nodeutils.Node)
+	fmt.Printf("1")
 	sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: id, Count: constants.CONCURRENCY_PARAM, Resp: resp}
 
+	fmt.Printf("2")
 	askNodes := <-resp
+	fmt.Printf("\nAskNodes: %v\n", askNodes)
 
 	candidates := nodeutils.NodeCandidates{}
 
@@ -57,14 +59,17 @@ func (sender RealSender) LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]
 	var wg sync.WaitGroup
 
 	for _, node := range askNodes {
+		fmt.Printf("asking more nodes")
 		wg.Add(1)
 		go sender.recursiveLookup(id, *node, &candidates, &queriedNodes, &wg)
 	}
 
+	fmt.Printf("waiting for wg")
 	// Wait for each goroutine to finish
 	wg.Wait()
-  // fmt.Printf("%v\n", candidates.GetNodes(constants.CLOSESTNODES))
-  
+	// fmt.Printf("%v\n", candidates.GetNodes(constants.CLOSESTNODES))
+
+	fmt.Printf("returning")
 	return candidates.GetNodePointers(constants.CLOSESTNODES)
 }
 
@@ -134,7 +139,9 @@ func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool, errCh chan err
 		errCh <- err
 	}
 
-	sender.AddNode <- nodeutils.AddNodeOp{AddedNode: *node}
+	if node != nil {
+		sender.AddNode <- nodeutils.AddNodeOp{AddedNode: *node}
+	}
 	ch <- (msg.Msg == "PONG")
 }
 
@@ -142,8 +149,10 @@ func (sender RealSender) Store(content string, ch chan int) {
 	var conn io.ReadWriter
 	var err error
 	sent := 0
-	id, _ := hashing.NewKademliaID(content)
+	id := hashing.NewKademliaID(content)
+	fmt.Printf("\nID: %v\n", id.String())
 	nodes := sender.LookUp(id)
+	fmt.Printf("\nNodes: %v\n", nodes)
 	for _, node := range nodes {
 		if node == nil {
 			continue
@@ -189,7 +198,9 @@ func (sender RealSender) FindNode(id *hashing.KademliaID, node *nodeutils.Node, 
 
 	// Add all given nodes to routing table
 	for _, node := range nodes {
-		sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
+		if &node != nil {
+			sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
+		}
 	}
 
 	ch <- nodes
@@ -225,7 +236,7 @@ func (sender RealSender) FindValue(node *nodeutils.Node, key *hashing.KademliaID
 		errCh <- err
 		return
 	}
-  fmt.Printf(msg.Content)
+	fmt.Printf(msg.Content)
 
 	if msg.Content == "" {
 		nodes, _ := nodeutils.FromStrings(msg.Nodes)
@@ -252,7 +263,7 @@ func (sender RealSender) LookUpValue(key *hashing.KademliaID) string {
 	// to how it's done in recursiveLookup.
 	for _, node := range kNodes {
 		if node != nil {
-      wg.Add(1)
+			wg.Add(1)
 			go func(n *nodeutils.Node) {
 				defer wg.Done()
 				successCh := make(chan string)
@@ -285,9 +296,12 @@ func (sender RealSender) Join(ip string, ch chan bool, errCh chan error) {
 	}
 
 	decoder := json.NewDecoder(conn)
-	encoder := json.NewEncoder(conn)
-
-	encoder.Encode(Message{RPC: "JOIN", Msg: JoinMsg{Msg: sender.Me.String()}})
+	// encoder := json.NewEncoder(conn)
+	joinMsg, _ := json.Marshal(
+		Message{RPC: "JOIN", Msg: JoinMsg{Msg: sender.Me.String()}, Author: sender.Me.String()},
+	)
+	fmt.Println(string(joinMsg))
+	conn.Write(joinMsg)
 
 	var msg JoinRespMsg
 	err = decoder.Decode(&msg)
@@ -295,8 +309,12 @@ func (sender RealSender) Join(ip string, ch chan bool, errCh chan error) {
 		ch <- false
 		return
 	}
-	key, _ := hashing.ToKademliaID(msg.ID)
-	node := nodeutils.NewNode(key, ip)
+	key, err := hashing.ToKademliaID(msg.ID)
+	if err != nil {
+		fmt.Printf(err.Error())
+		return
+	}
+	node := nodeutils.Node{ID: key, IP: msg.IP}
 	sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
 
 	// Run LookUp on myself to fill up k-buckets according to Kademlia specification.

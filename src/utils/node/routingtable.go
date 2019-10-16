@@ -1,6 +1,8 @@
 package node
 
-import hashing "utils/hashing"
+import (
+	"utils/hashing"
+)
 
 const bucketSize = 20
 
@@ -23,6 +25,9 @@ func NewRoutingTable(me Node) *RoutingTable {
 
 // AddNode add a new contact to the correct Bucket
 func (routingTable *RoutingTable) AddNode(contact Node) {
+  if contact.ID == nil {
+    return
+  }
 	bucketIndex := routingTable.getBucketIndex(contact.ID, hashing.IDLength)
 	bucket := routingTable.buckets[bucketIndex]
 	bucket.AddNode(contact)
@@ -87,8 +92,8 @@ func TableSynchronizer(rTable *RoutingTable, addNodes chan AddNodeOp, findCloses
 			rTable.AddNode(addNode.AddedNode)
 		case findClosestNode := <-findClosestNodes:
 			result := make([]*Node, 0)
-			for i, node := range rTable.FindClosestNodes(findClosestNode.Target, findClosestNode.Count) {
-				result[i] = &node
+			for _, node := range rTable.FindClosestNodes(findClosestNode.Target, findClosestNode.Count) {
+				result = append(result, &node)
 			}
 			findClosestNode.Resp <- result
 		}

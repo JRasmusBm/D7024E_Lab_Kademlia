@@ -28,28 +28,14 @@ func (api API) Store(content string) (*hashing.KademliaID, int) {
 	ch := make(chan int)
 	key := hashing.NewKademliaID(content)
 
-	nodes, _ := api.FindNode(key)
-
-	go api.Sender.Store(content, nodes, ch)
+	go api.Sender.Store(content, ch)
 	sent := <-ch
-
-	key, _ := hashing.NewKademliaID(content)
 
 	return key, sent
 }
 
 func (api API) FindNode(id *hashing.KademliaID) ([constants.CLOSESTNODES]*nodeutils.Node, error) {
-	ch := make(chan [constants.CLOSESTNODES]*nodeutils.Node)
-	errCh := make(chan error)
-
-	go api.Sender.FindNode(id, ch, errCh)
-	nodes := [constants.CLOSESTNODES]*nodeutils.Node{}
-	select {
-	case nodes = <-ch:
-		return nodes, nil
-	case err := <-errCh:
-		return nodes, err
-	}
+	return api.Sender.LookUp(id), nil
 }
 
 func (api API) FindValue(key *hashing.KademliaID) (string, error) {
