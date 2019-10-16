@@ -1,0 +1,53 @@
+\section{Summary}\label{sec:summary}
+We chose to present a paper\footnote{\href{https://ieeexplore.ieee.org/
+document/8457919}{https://ieeexplore.ieee.org/document/8457919}}
+concerning blockchain-based e-voting systems. The problems this paper
+attempts to solve is the core of any election. It should not enable 
+coerced voting, a vote should not be traceable to a person, it should
+provide transparency without sacrificing the voter's privacy. It should
+provide a secure authentication, ensure only eligible individuals can vote
+and should not allow any tampering by any third party.
+
+The paper presents a solution using an Go-Ethereum permissioned blockchain and
+mentions previous related work of attempted e-voting systems such as Agora.\footnote{
+\href{https://static1.squarespace.com/static/5b0be2f4e2ccd12e7e8a9be9/t/5b6c38550e2e725e9cad3f18/1533818968655/Agora_Whitepaper.pdf}{https://static1.squarespace.com/static/5b0be2f4e2ccd12e7e8a9be9/t/5b6c38550e2e725e9cad3f18/1533818968655/Agora\_Whitepaper.pdf}} In the article they also cover the basics of
+blockchain and why it is the base of the presented solution. The blockchain
+is an immutable ledger that is easily verifiable that offers full transparency
+while not sacrificing privacy. Their presented blockchain solution is based
+on smart contracts, which they describe as "refedined trust" as they are
+visible to all users of the blockchain and therefore easily verified.
+
+The solution itself presents two types of nodes, a "district node" that
+represents each voting district and interacts with a "bootnode". The
+bootnode does not keep any blockchain state but helps district nodes discover
+each other and communicate. Each institution with permission access will host
+a bootnode.
+
+In the article they defined the smart contracts as "Election roles",
+"Agreement process" and "Transactions". There are two types of roles,
+an "Election Administrator" that create an election and manage its lifecycle.
+A "Voter" that are eligible individuals. A voter can authenticate, load election
+ballots, vote and verify their vote.
+
+There are 4 types of processes, the "Election creation" are smart contracts as
+election ballots that are written onto the blockchain. "Voter registration" to
+ensure only eligible individuals can vote, they mention that this step may need
+a component for a government identity verification service. "Tallying results"
+this is done on the fly in the smart contracts. "Verifying votes" in their solution
+voters receive a transaction ID of their vote which is to be used on an official
+election site to verify their vote.
+
+The transaction itself is done by the voter interacting with a ballot smart contract.
+The smart contract then interacts with the blockchain via its district node which
+appends the vote onto the blockchain.
+
+The limitation with this system presented in the article is that the system is
+capable of handling hundreds of transactions per second. But for countries where
+millions and millions of votes are done at the same time additional measures would
+be needed to support such a nation scaled event.
+
+\section{Reflections}\label{sec:reflections}
+We thought it was an interesting concept of using blockchain as an e-voting system
+and thus decided to present this paper. Todays traditional voting system has no transparency
+so a voter is incapable of verifying their vote. Which is one of the major points these types
+of solutions attempts to solve.
