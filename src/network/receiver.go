@@ -74,7 +74,11 @@ func (receiver RealReceiver) handleRequest(conn io.ReadWriter) {
 		return
 	}
 
-	fmt.Println("Message received:", tmp)
+	fmt.Printf("\nMESSAGE RECEIVED:\n\tMsg: %s,\n\tAuthor: %s,\n\tRPC: %s\n",
+		string(tmp.Msg),
+		tmp.Author,
+		tmp.RPC,
+	)
 
 	switch tmp.RPC {
 	case "PING": // Return PONG to verify that the request succeded.
@@ -144,24 +148,16 @@ func (receiver RealReceiver) PingReply(msg Message, conn io.ReadWriter) {
 }
 
 func (receiver RealReceiver) FindNodeReply(msg Message, conn io.ReadWriter) {
-	fmt.Printf("%v", msg.Msg)
-	fmt.Printf("%#v", msg.Msg)
 	findNodeMsg := msg.Msg.(FindNodeMsg)
 	target, _ := hashing.ToKademliaID(findNodeMsg.ID)
-	var closest_nodes_ch chan []nodeutils.Node
-	receiver.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES}
+	closest_nodes_ch := make(chan []*nodeutils.Node)
+	receiver.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
 	closest_nodes := <-closest_nodes_ch
-	response := ""
-	for i, node := range closest_nodes {
-		receiver.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
-
-		if i != len(closest_nodes)-1 {
-			response += node.String() + "  "
-		} else {
-			response += node.String()
-		}
+	for _, node := range closest_nodes {
+		receiver.AddNode <- nodeutils.AddNodeOp{AddedNode: *node}
 	}
 
+	response := nodeutils.ToStrings(closest_nodes)
 	encoder := json.NewEncoder(conn)
 	encoder.Encode(FindNodeRespMsg{Nodes: response})
 }

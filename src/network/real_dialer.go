@@ -12,14 +12,12 @@ import (
 type RealDialer struct{}
 
 func dial(ip string, ch chan io.ReadWriter, errCh chan error) {
-	fmt.Printf("Dialing %v", ip)
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", ip, constants.KADEMLIA_PORT))
 	if err != nil {
 		errCh <- err
 		fmt.Printf(err.Error())
 		return
 	}
-	fmt.Printf("Worlds")
 	ch <- conn
 	return
 }

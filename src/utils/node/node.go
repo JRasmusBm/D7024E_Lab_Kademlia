@@ -98,7 +98,8 @@ func FromStrings(str string) ([]Node, error) {
 	for _, str := range nodes_string {
 		node, err = FromString(str)
 		if err != nil {
-			return []Node{}, err
+			fmt.Printf("\nTried to parse: %s\nGot Error: %s", str, err.Error())
+			continue
 		}
 		found_nodes = append(found_nodes, node)
 	}
@@ -118,18 +119,23 @@ type NodeCandidates struct {
 // Append an array of Nodes to the NodeCandidates
 func (candidates *NodeCandidates) Append(nodes []Node) {
 	candidates.Lock()
-	candidates.Nodes = append(candidates.Nodes, nodes...)
+  for _, node := range nodes {
+    if !NodeInArr(node, candidates.Nodes) {
+      candidates.Nodes = append(candidates.Nodes, node)
+    }
+  }
+	// candidates.Nodes = append(candidates.Nodes, nodes...)
 	candidates.Unlock()
 }
 
 // GetNodePointers returns the first count number of Nodes
 func (candidates *NodeCandidates) GetNodePointers(count int) [constants.CLOSESTNODES]*Node {
-  candidates.RLock()
-  var result [constants.CLOSESTNODES]*Node
+	candidates.RLock()
+	var result [constants.CLOSESTNODES]*Node
 	for i, node := range candidates.GetNodes(count) {
 		result[i] = &node
 	}
-  candidates.RUnlock()
+	candidates.RUnlock()
 	return result
 }
 
@@ -152,7 +158,7 @@ func (candidates *NodeCandidates) Sort() {
 	tempCandidates := NodeCandidates{
 		Nodes: candidates.Nodes,
 	}
-  candidates.RUnlock()
+	candidates.RUnlock()
 
 	sort.Sort(&tempCandidates)
 	candidates.Lock()
@@ -187,10 +193,10 @@ func (candidates *NodeCandidates) Less(i, j int) bool {
 }
 
 func NodeInArr(nodeA Node, nodes []Node) bool {
-  for _, nodeB := range nodes {
-    if nodeA.String() == nodeB.String() {
-      return true
-    }
-  }
-  return false
+	for _, nodeB := range nodes {
+		if nodeA.ID.String() == nodeB.ID.String() {
+			return true
+		}
+	}
+	return false
 }
