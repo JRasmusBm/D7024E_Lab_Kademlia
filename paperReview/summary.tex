@@ -2,11 +2,15 @@
 We chose to present a paper\footnote{\href{https://ieeexplore.ieee.org/
 document/8457919}{https://ieeexplore.ieee.org/document/8457919}}
 concerning blockchain-based e-voting systems. The problems this paper
-attempts to solve is the core of any election. It should not enable 
-coerced voting, a vote should not be traceable to a person, it should
-provide transparency without sacrificing the voter's privacy. It should
-provide a secure authentication, ensure only eligible individuals can vote
-and should not allow any tampering by any third party.
+attempts to solve is the core of any e-based election.
+\begin{itemize}
+  \item It should not enable coerced voting.
+  \item A vote should not be traceable to a person.
+  \item It should provide transparency without sacrificing the voter's privacy.
+  \item It should provide a secure authentication.
+  \item It should ensure only eligible individuals can vote.
+  \item It should not allow any tampering by a third party.
+\end{itemize}
 
 The paper presents a solution using an Go-Ethereum permissioned blockchain and
 mentions previous related work of attempted e-voting systems such as Agora.\footnote{
@@ -17,25 +21,36 @@ while not sacrificing privacy. Their presented blockchain solution is based
 on smart contracts, which they describe as "refedined trust" as they are
 visible to all users of the blockchain and therefore easily verified.
 
-The solution itself presents two types of nodes, a "district node" that
-represents each voting district and interacts with a "bootnode". The
-bootnode does not keep any blockchain state but helps district nodes discover
-each other and communicate. Each institution with permission access will host
-a bootnode.
+The solution itself provides two types of nodes:
+
+\begin{itemize}
+  \item District node: It represents each voting district and interacts with a "bootnode".
+  \item Bootnode: The bootnode does not keep any blockchain state but helps 
+district nodes discover each other and communicate. Each insitution with permission
+access will host a bootnode.
+\end{itemize}
 
 In the article they defined the smart contracts as "Election roles",
-"Agreement process" and "Transactions". There are two types of roles,
-an "Election Administrator" that create an election and manage its lifecycle.
-A "Voter" that are eligible individuals. A voter can authenticate, load election
-ballots, vote and verify their vote.
+"Agreement process" and "Transactions". There are two types of roles:
 
-There are 4 types of processes, the "Election creation" are smart contracts as
-election ballots that are written onto the blockchain. "Voter registration" to
-ensure only eligible individuals can vote, they mention that this step may need
-a component for a government identity verification service. "Tallying results"
-this is done on the fly in the smart contracts. "Verifying votes" in their solution
-voters receive a transaction ID of their vote which is to be used on an official
-election site to verify their vote.
+\begin{itemize}
+  \item Election Administrator: Creates an election and manage its lifecycle.
+  \item Voter: These are eligible individuals that can authenticate, load election
+ballots, vote and verify their vote.
+\end{itemize}
+
+There are 4 types of processes:
+
+\begin{itemize}
+  \item Election creation: These are smart contracts as election ballots that
+are written onto the blockchain.
+  \item Voter registration: This ensure only eligible individuals can vote.
+Note that they mention that this step may need an additional component for
+a government identity verification service.
+  \item Tallying results: This is done on the fly in the smart contracts.
+  \item Verifying votes: A voter receives a transaction ID of their vote which is
+to be used on an official election site to verify their vote.
+\end{itemize}
 
 The transaction itself is done by the voter interacting with a ballot smart contract.
 The smart contract then interacts with the blockchain via its district node which
