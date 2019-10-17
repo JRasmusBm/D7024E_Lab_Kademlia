@@ -156,11 +156,14 @@ func TestJoinReply(t *testing.T) {
 		Me:      &node1,
 	}
 	ch := make(chan []byte)
-	var conn io.ReadWriter = &MockReadWriter{WriteCh: ch}
+	var conn io.ReadWriter = &MockReadWriter{
+		WriteCh: ch,
+		i:       0,
+	}
 	go receiver.JoinReply(msg, conn)
 	actual := <-ch
 	data, _ := json.Marshal(
-		JoinRespMsg{Success: true, ID: id1.String()},
+    JoinRespMsg{Success: true, ID: id1.String(), IP: "0.0.0.0"},
 	)
 	expected := string(data) + "\n"
 	if expected != string(actual) {
@@ -168,29 +171,34 @@ func TestJoinReply(t *testing.T) {
 	}
 }
 
-//func TestFindNodeReply(t *testing.T) {
-//	id1, _ := hashing.ToKademliaID("1111111111111111111111111111111111111111")
-//	node1 := nodeutils.Node{ID: id1, IP: "0.0.0.0"}
-//	msg := Message{
-//		RPC: "FIND_NODE",
-//		Msg: FindNodeMsg{ID: id1.String()},
-//	}
-//	var storage storage_p.Storage = &MockStorage{ReadResult: ""}
-//	addNode := make(chan nodeutils.AddNodeOp)
-//	go func() {
-//		for {
-//			<-addNode
-//		}
-//	}()
-//
-//	ch := make(chan []nodeutils.Node)
-//	receiver := RealReceiver{
-//		Storage: &storage,
-//		FindClosestNodes: ch
-//		Me:      &node1,
-//	}
-//	
-//	var conn io.ReadWriter = &MockReadWriter{}
-//	go receiver.FindNodeReply(msg, conn)
-//
-//}
+func TestFindNodeReply(t *testing.T) {
+	id1, _ := hashing.ToKademliaID("1111111111111111111111111111111111111111")
+	node1 := nodeutils.Node{ID: id1, IP: "0.0.0.0"}
+	msg := Message{
+		RPC: "FIND_NODE",
+		Msg: FindNodeMsg{ID: id1.String()},
+	}
+	var storage storage_p.Storage = &MockStorage{ReadResult: ""}
+	addNode := make(chan nodeutils.AddNodeOp)
+	go func() {
+		for {
+			<-addNode
+		}
+	}()
+
+  findClosestNodes := make(chan nodeutils.FindClosestNodesOp, 1000)
+  go func() {
+    message := <-findClosestNodes
+    message.Resp <- []nodeutils.Node{node1}
+  }()
+	receiver := RealReceiver{
+		Storage: &storage,
+    AddNode: addNode,
+		FindClosestNodes: findClosestNodes,
+		Me:      &node1,
+	}
+
+	var conn io.ReadWriter = &MockReadWriter{}
+	go receiver.FindNodeReply(msg, conn)
+
+}

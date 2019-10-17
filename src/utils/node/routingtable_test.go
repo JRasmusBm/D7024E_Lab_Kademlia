@@ -26,9 +26,8 @@ func TestThreeClosest1(t *testing.T) {
 	addNodes := make(chan AddNodeOp)
 	findClosestNodes := make(chan FindClosestNodesOp, 3)
 	go TableSynchronizer(rt, addNodes, findClosestNodes)
-	okChan := make(chan bool, 100)
 	for _, node := range nodes {
-		addNodes <- AddNodeOp{AddedNode: node, Resp: okChan}
+		addNodes <- AddNodeOp{AddedNode: node}
 	}
 
 	resp := make(chan []Node)
@@ -71,9 +70,8 @@ func TestThreeClosest2(t *testing.T) {
 	addNodes := make(chan AddNodeOp)
 	findClosestNodes := make(chan FindClosestNodesOp, 3)
 	go TableSynchronizer(rt, addNodes, findClosestNodes)
-	okChan := make(chan bool, 100)
 	for _, node := range nodes {
-		addNodes <- AddNodeOp{AddedNode: node, Resp: okChan}
+		addNodes <- AddNodeOp{AddedNode: node}
 	}
 
 	resp := make(chan []Node)
@@ -116,10 +114,8 @@ func TestAllClosest(t *testing.T) {
 	addNodes := make(chan AddNodeOp)
 	findClosestNodes := make(chan FindClosestNodesOp)
 	go TableSynchronizer(rt, addNodes, findClosestNodes)
-	okChan := make(chan bool, 100)
 	for _, node := range nodes {
-		addNodes <- AddNodeOp{AddedNode: node, Resp: okChan}
-		<-okChan
+		addNodes <- AddNodeOp{AddedNode: node}
 	}
 
 	resp := make(chan []Node)
@@ -144,6 +140,16 @@ func TestAllClosest(t *testing.T) {
 		t.Errorf("Position 4: Expected %v got %v", expected[4].ID, actual[4].ID)
 		t.Errorf("Position 5: Expected %v got %v", expected[5].ID, actual[5].ID)
 	}
+}
+
+func TestAddNilNode(t *testing.T) {
+	id, _ := hashing.ToKademliaID("FFFFFFFF00000000000000000000000000000000")
+	root_node := NewNode(
+		id,
+		"localhost:8000",
+	)
+	rt := NewRoutingTable(root_node)
+	rt.AddNode(Node{})
 }
 
 func TestGetInvalidBucketIndex(t *testing.T) {

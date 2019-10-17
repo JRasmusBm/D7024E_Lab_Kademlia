@@ -9,7 +9,6 @@ import (
 	"network"
 	"testing"
 	"time"
-	"utils/constants"
 	"utils/hashing"
 	networkutils "utils/network"
 	nodeutils "utils/node"
@@ -185,27 +184,14 @@ func TestCommandGetInvalidID(t *testing.T) {
 	}
 }
 
-func TestCommandFindValueFailed(t *testing.T) {
-	sender := &network.MockSender{FindValueErr: errors.New("TestFindValueFailed")}
-	api := api_p.API{Sender: sender}
-	var server Server = &RealServer{api: api}
-	actual := server.CommandHandler(
-		[]string{"get", "0000000000000000000000000000000000000000"},
-	)
-	expected := "TestFindValueFailed;"
-	if expected != actual {
-		t.Errorf("Expected %v got %v", expected, actual)
-	}
-}
-
 func TestCommandFindValueSuccessful(t *testing.T) {
-	sender := &network.MockSender{FindValueResponse: "TestFindValueSuccessful"}
+	sender := &network.MockSender{LookUpValueResult: "Hello"}
 	api := api_p.API{Sender: sender}
 	var server Server = &RealServer{api: api}
 	actual := server.CommandHandler(
 		[]string{"get", "0000000000000000000000000000000000000000"},
 	)
-	expected := "Value: TestFindValueSuccessful;"
+  expected := "Value: Hello;"
 	if expected != actual {
 		t.Errorf("Expected %v got %v", expected, actual)
 	}
@@ -216,11 +202,7 @@ func TestCommandStore(t *testing.T) {
 	key := hashing.NewKademliaID(str)
 	sender := &network.MockSender{
 		StoreSent: 2,
-		FindNodeResponse: [constants.REPLICATION_FACTOR]*nodeutils.Node{
-			nil,
-			nil,
-			nil,
-		},
+		FindNodeResponse: []nodeutils.Node{},
 	}
 	api := api_p.API{Sender: sender}
 	var server Server = &RealServer{api: api}

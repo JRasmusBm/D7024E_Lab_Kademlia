@@ -18,23 +18,24 @@ type MockSender struct {
 	JoinErr            error
 	IsFindValueCloser  bool
 	IsFindValueSuccess bool
-	FindValueCloser    [constants.CLOSESTNODES]*nodeutils.Node
+	FindValueCloser    [constants.CLOSESTNODES]nodeutils.Node
 	FindValueSuccess   string
-	LookUpResult       [constants.CLOSESTNODES]*nodeutils.Node
+	LookUpResult       []nodeutils.Node
 	LookUpValueResult  string
 }
 
-func (m *MockSender) Dial(node *nodeutils.Node) (io.ReadWriter, error) {
+func (m *MockSender) Dial(node nodeutils.Node) (io.ReadWriter, error) {
 	return nil, nil
 }
 
 func (r *MockSender) Ping(
-	node *nodeutils.Node,
+	node nodeutils.Node,
 	ch chan bool,
 	errCh chan error,
 ) {
 	if r.PingErr != nil {
 		errCh <- r.PingErr
+    return
 	}
 	ch <- r.PingResponse
 	return
@@ -46,7 +47,7 @@ func (r *MockSender) Store(content string, ch chan int) {
 }
 
 func (r *MockSender) FindNode(
-	id *hashing.KademliaID, node *nodeutils.Node, ch chan []nodeutils.Node, errCh chan error) {
+	id *hashing.KademliaID, node nodeutils.Node, ch chan []nodeutils.Node, errCh chan error) {
 	if r.FindNodeErr != nil {
 		errCh <- r.FindNodeErr
 	}
@@ -54,7 +55,7 @@ func (r *MockSender) FindNode(
 	return
 }
 
-func (r *MockSender) FindValue(node *nodeutils.Node, key *hashing.KademliaID, successCh chan string, closerCh chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error) {
+func (r *MockSender) FindValue(node nodeutils.Node, key *hashing.KademliaID, successCh chan string, closerCh chan [constants.CLOSESTNODES]nodeutils.Node, errCh chan error) {
 	if r.FindValueErr != nil {
 		errCh <- r.FindValueErr
 	}
@@ -75,7 +76,7 @@ func (r *MockSender) Join(ip string, ch chan bool, errCh chan error) {
 	return
 }
 
-func (r *MockSender) LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]*nodeutils.Node {
+func (r *MockSender) LookUp(id *hashing.KademliaID) []nodeutils.Node {
 	return r.LookUpResult
 }
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"io"
+	// "io"
 	"testing"
 	"time"
 )
@@ -45,31 +45,31 @@ func TestListenToServerDoesNotCrashErr(t *testing.T) {
 	time.Sleep(5 * time.Millisecond)
 }
 
-func TestGetMessageSuccess(t *testing.T) {
-	var client Client = &RealClient{}
-	expected := "Hello!"
-	var reader Reader = &MockReader{ReadStringResult: "Hello!"}
-	actual, actualErr := client.GetMessageFromUser(&reader)
-	if actualErr != nil {
-		t.Error(actualErr)
-	}
-	if expected != actual {
-		t.Errorf("Expected %v got %v", expected, actual)
-	}
-}
+// func TestGetMessageSuccess(t *testing.T) {
+// 	var client Client = &RealClient{}
+// 	expected := "Hello!"
+// 	var reader Reader = &MockReader{ReadStringResult: "Hello!"}
+// 	actual, actualErr := client.GetMessageFromUser(&reader)
+// 	if actualErr != nil {
+// 		t.Error(actualErr)
+// 	}
+// 	if expected != actual {
+// 		t.Errorf("Expected %v got %v", expected, actual)
+// 	}
+// }
 
-func TestHandlePingSuccess(t *testing.T) {
-	var client Client = &RealClient{}
-	expected := "ping 123;"
-	var reader FileReader = &MockFileReader{}
-	actual, actualErr := client.HandleMessage("ping 123", &reader)
-	if actualErr != nil {
-		t.Error(actualErr)
-	}
-	if expected != actual {
-		t.Errorf("Expected %v got %v", expected, actual)
-	}
-}
+// func TestHandlePingSuccess(t *testing.T) {
+// 	var client Client = &RealClient{}
+// 	expected := "ping 123;"
+// 	var reader FileReader = &MockFileReader{}
+// 	actual, actualErr := client.HandleMessage("ping 123", &reader)
+// 	if actualErr != nil {
+// 		t.Error(actualErr)
+// 	}
+// 	if expected != actual {
+// 		t.Errorf("Expected %v got %v", expected, actual)
+// 	}
+// }
 
 func TestHandlePutSuccess(t *testing.T) {
 	var client Client = &RealClient{}
@@ -95,12 +95,12 @@ func TestHandlePutFail(t *testing.T) {
 	}
 }
 
-func TestSendMessageDoesNotCrash(t *testing.T) {
-	var client Client = &RealClient{}
-	var writer io.Writer = &MockWriter{}
-	go client.SendMessage(&writer, "hello;")
-	time.Sleep(300 * time.Millisecond)
-}
+// func TestSendMessageDoesNotCrash(t *testing.T) {
+// 	var client Client = &RealClient{}
+// 	var writer io.Writer = &MockWriter{}
+// 	go client.SendMessage(&writer, "hello;")
+// 	time.Sleep(300 * time.Millisecond)
+// }
 
 func TestDial(t *testing.T) {
 	var network Network = &RealNetwork{}
@@ -108,37 +108,37 @@ func TestDial(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 }
 
-func TestReadFile(t *testing.T) {
-	var fileReader FileReader = &RealFileReader{}
-	_, err := fileReader.ReadFile("fjdslfhdsalguhewoireryiuqrhewkjrew.fads")
-	if err == nil {
-		t.Errorf("Expected to return error when file does not exist")
-	}
-}
+// func TestReadFile(t *testing.T) {
+// 	var fileReader FileReader = &RealFileReader{}
+// 	_, err := fileReader.ReadFile("fjdslfhdsalguhewoireryiuqrhewkjrew.fads")
+// 	if err == nil {
+// 		t.Errorf("Expected to return error when file does not exist")
+// 	}
+// }
 
-func TestConnectionValidError(t *testing.T) {
-	var reader Reader = &MockReader{ReadStringErr: errors.New("Could not read")}
-	var writer io.Writer = &MockWriter{}
-	var client Client = &RealClient{}
-	if client.ConnectionValid(&writer, &reader) {
-		t.Errorf("Should not be valid at read string error")
-	}
-}
+// func TestConnectionValidError(t *testing.T) {
+// 	var reader Reader = &MockReader{ReadStringErr: errors.New("Could not read")}
+// 	var writer io.Writer = &MockWriter{}
+// 	var client Client = &RealClient{}
+// 	if client.ConnectionValid(&writer, &reader) {
+// 		t.Errorf("Should not be valid at read string error")
+// 	}
+// }
 
-func TestConnectionValidWrongResponse(t *testing.T) {
-	var reader Reader = &MockReader{ReadStringResult: "boooyaah;"}
-	var writer io.Writer = &MockWriter{}
-	var client Client = &RealClient{}
-	if client.ConnectionValid(&writer, &reader) {
-		t.Errorf("Should not be valid when string is not ok;")
-	}
-}
+// func TestConnectionValidWrongResponse(t *testing.T) {
+// 	var reader Reader = &MockReader{ReadStringResult: "boooyaah;"}
+// 	var writer io.Writer = &MockWriter{}
+// 	var client Client = &RealClient{}
+// 	if client.ConnectionValid(&writer, &reader) {
+// 		t.Errorf("Should not be valid when string is not ok;")
+// 	}
+// }
 
-func TestConnectionValidSuccess(t *testing.T) {
-	var reader Reader = &MockReader{ReadStringResult: "ok;"}
-	var writer io.Writer = &MockWriter{}
-	var client Client = &RealClient{}
-	if !client.ConnectionValid(&writer, &reader) {
-		t.Errorf("Should be valid when string is ok;")
-	}
-}
+// func TestConnectionValidSuccess(t *testing.T) {
+// 	var reader Reader = &MockReader{ReadStringResult: "ok;"}
+// 	var writer io.Writer = &MockWriter{}
+// 	var client Client = &RealClient{}
+// 	if !client.ConnectionValid(&writer, &reader) {
+// 		t.Errorf("Should be valid when string is ok;")
+// 	}
+// }

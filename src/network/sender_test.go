@@ -18,7 +18,7 @@ func TestDial(t *testing.T) {
 		DialErrors:  []error{nil},
 	}
 	var sender Sender = &RealSender{Dialer: &dialer}
-	_, err := sender.Dial(&nodeutils.Node{IP: "0.0.0.0"})
+	_, err := sender.Dial(nodeutils.Node{IP: "0.0.0.0"})
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,7 +31,7 @@ func TestDialFailed(t *testing.T) {
 		DialErrors:  []error{errors.New("TestDialFailed")},
 	}
 	var sender Sender = &RealSender{Dialer: &dialer}
-	_, err := sender.Dial(&nodeutils.Node{IP: "0.0.0.0"})
+	_, err := sender.Dial(nodeutils.Node{IP: "0.0.0.0"})
 	if err == nil {
 		t.Errorf("Should throw an error")
 	}
@@ -133,7 +133,7 @@ func TestPing(t *testing.T) {
 			<-addNode
 		}
 	}()
-	go sender.Ping(&node1, ch, errCh)
+	go sender.Ping(node1, ch, errCh)
 	var err error
 	var actual bool
 	select {
@@ -173,7 +173,7 @@ func TestPingDialErrors(t *testing.T) {
 			<-addNode
 		}
 	}()
-	go sender.Ping(&node1, ch, errCh)
+	go sender.Ping(node1, ch, errCh)
 	var err error
 	select {
 	case err = <-errCh:
@@ -203,7 +203,7 @@ func TestPingFailConn(t *testing.T) {
 			<-addNode
 		}
 	}()
-	go sender.Ping(&node1, ch, errCh)
+	go sender.Ping(node1, ch, errCh)
 	var err error
 	var actual bool
 	select {
@@ -251,7 +251,7 @@ func TestStore(t *testing.T) {
 	findClosestNodes := make(chan nodeutils.FindClosestNodesOp, 1000)
 	go func() {
 		message := <-findClosestNodes
-		message.Resp <- []*nodeutils.Node{&node1}
+		message.Resp <- []nodeutils.Node{node1}
 	}()
 	go func() {
 		for {
@@ -301,7 +301,7 @@ func TestStoreDialErrors(t *testing.T) {
 	findClosestNodes := make(chan nodeutils.FindClosestNodesOp, 1000)
 	go func() {
 		message := <-findClosestNodes
-		message.Resp <- []*nodeutils.Node{&node1}
+		message.Resp <- []nodeutils.Node{node1}
 	}()
 	go func() {
 		for {
@@ -330,7 +330,7 @@ func TestLookUpValue(t *testing.T) {
 	expected := "abc"
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node2}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node2}),
 		},
 	)
 	lookupValueMsg, _ := json.Marshal(
@@ -366,7 +366,7 @@ func TestLookUpValue(t *testing.T) {
 	go func() {
 		for {
 			message := <-findClosestNodes
-			message.Resp <- []*nodeutils.Node{&node1, &node2}
+			message.Resp <- []nodeutils.Node{node1, node2}
 		}
 	}()
 	go func() {
@@ -395,11 +395,11 @@ func TestLookUpValueNodes(t *testing.T) {
 	expected := "abc"
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node2}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node2}),
 		},
 	)
 	lookupValueMsg, _ := json.Marshal(
-		FindValueRespMsg{Content: "", Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node2})},
+		FindValueRespMsg{Content: "", Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node2})},
 	)
 	var storage storage_p.Storage = &MockStorage{ReadErr: errors.New("LookUpValue")}
 	var dialer Dialer = &MockDialer{
@@ -431,7 +431,7 @@ func TestLookUpValueNodes(t *testing.T) {
 	go func() {
 		for {
 			message := <-findClosestNodes
-			message.Resp <- []*nodeutils.Node{&node1, &node2}
+			message.Resp <- []nodeutils.Node{node1, node2}
 		}
 	}()
 	go func() {
@@ -460,7 +460,7 @@ func TestLookUpValueDialError(t *testing.T) {
 	expected := "abc"
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node2}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node2}),
 		},
 	)
 	lookupValueMsg, _ := json.Marshal(
@@ -502,7 +502,7 @@ func TestLookUpValueDialError(t *testing.T) {
 	go func() {
 		for {
 			message := <-findClosestNodes
-			message.Resp <- []*nodeutils.Node{&node1, &node2}
+			message.Resp <- []nodeutils.Node{node1, node2}
 		}
 	}()
 	go func() {
@@ -531,7 +531,7 @@ func TestLookUpValueDecodeError(t *testing.T) {
 	expected := "abc"
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node2}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node2}),
 		},
 	)
 	lookupValueMsg := []byte("0000")
@@ -571,7 +571,7 @@ func TestLookUpValueDecodeError(t *testing.T) {
 	go func() {
 		for {
 			message := <-findClosestNodes
-			message.Resp <- []*nodeutils.Node{&node1, &node2}
+			message.Resp <- []nodeutils.Node{node1, node2}
 		}
 	}()
 	go func() {
@@ -600,7 +600,7 @@ func TestLookUpValueEmptyString(t *testing.T) {
 	expected := ""
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node2}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node2}),
 		},
 	)
 	lookupValueMsg, _ := json.Marshal(
@@ -636,7 +636,7 @@ func TestLookUpValueEmptyString(t *testing.T) {
 	go func() {
 		for {
 			message := <-findClosestNodes
-			message.Resp <- []*nodeutils.Node{&node1, &node2}
+			message.Resp <- []nodeutils.Node{node1, node2}
 		}
 	}()
 	go func() {
@@ -665,7 +665,7 @@ func TestLookUpValueCaseContent(t *testing.T) {
 	expected := "abc"
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node2}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node2}),
 		},
 	)
 	lookupValueMsg, _ := json.Marshal(
@@ -701,7 +701,7 @@ func TestLookUpValueCaseContent(t *testing.T) {
 	go func() {
 		for {
 			message := <-findClosestNodes
-			message.Resp <- []*nodeutils.Node{&node1, &node2}
+			message.Resp <- []nodeutils.Node{node1, node2}
 		}
 	}()
 	go func() {
@@ -731,7 +731,7 @@ func TestJoin(t *testing.T) {
 	)
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node1}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node1}),
 		},
 	)
 	var dialer Dialer = &MockDialer{
@@ -750,7 +750,7 @@ func TestJoin(t *testing.T) {
 	findClosestNodes := make(chan nodeutils.FindClosestNodesOp, 1000)
 	go func() {
 		message := <-findClosestNodes
-		message.Resp <- []*nodeutils.Node{&node1}
+		message.Resp <- []nodeutils.Node{node1}
 	}()
 	go func() {
 		for {
@@ -792,7 +792,7 @@ func TestJoinDialError(t *testing.T) {
 	)
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node1}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node1}),
 		},
 	)
 	var dialer Dialer = &MockDialer{
@@ -817,7 +817,7 @@ func TestJoinDialError(t *testing.T) {
 	findClosestNodes := make(chan nodeutils.FindClosestNodesOp, 1000)
 	go func() {
 		message := <-findClosestNodes
-		message.Resp <- []*nodeutils.Node{&node1}
+		message.Resp <- []nodeutils.Node{node1}
 	}()
 	go func() {
 		for {
@@ -856,7 +856,7 @@ func TestJoinDecodeError(t *testing.T) {
 	joinRespMsg := []byte("0000")
 	lookupMsg, _ := json.Marshal(
 		FindNodeRespMsg{
-			Nodes: nodeutils.ToStrings([]*nodeutils.Node{&node1, &node1}),
+			Nodes: nodeutils.ToStrings([]nodeutils.Node{node1, node1}),
 		},
 	)
 	var dialer Dialer = &MockDialer{
@@ -881,7 +881,7 @@ func TestJoinDecodeError(t *testing.T) {
 	findClosestNodes := make(chan nodeutils.FindClosestNodesOp, 1000)
 	go func() {
 		message := <-findClosestNodes
-		message.Resp <- []*nodeutils.Node{&node1}
+		message.Resp <- []nodeutils.Node{node1}
 	}()
 	go func() {
 		for {

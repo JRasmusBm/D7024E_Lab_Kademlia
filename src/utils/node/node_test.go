@@ -3,7 +3,6 @@ package node
 import (
 	"fmt"
 	"testing"
-	"utils/constants"
 	"utils/hashing"
 )
 
@@ -72,11 +71,11 @@ func TestFromStringInvalidIDCharacters(t *testing.T) {
 }
 
 func TestFromStringsInvalidNodes(t *testing.T) {
-	nodes, err := FromStrings(
+	nodes, _ := FromStrings(
 		"node(\"123\",\"abc\") (123)",
 	)
-	if err == nil {
-		t.Errorf("Should throw error, instead got node: %#v", nodes)
+	if len(nodes) > 0 {
+		t.Errorf("Should not parse any nodes")
 	}
 }
 
@@ -90,9 +89,9 @@ func TestFromStrings(t *testing.T) {
 	}
 	id1, _ := hashing.ToKademliaID("0000000000000000000000000000000000000000")
 	id2, _ := hashing.ToKademliaID("1111111111111111111111111111111111111111")
-	expected := [constants.CLOSESTNODES]*Node{
-		&Node{ID: id1, IP: "abc"},
-		&Node{ID: id2, IP: "def"},
+	expected := []Node{
+		Node{ID: id1, IP: "abc"},
+		Node{ID: id2, IP: "def"},
 	}
 	if len(nodes) != len(expected) ||
 		!nodes[0].ID.Equals(expected[0].ID) ||
