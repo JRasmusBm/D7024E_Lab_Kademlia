@@ -40,11 +40,11 @@ func (node *Node) String() string {
 }
 
 // ToStrings returns a string representation of an array of Nodes
-func ToStrings(nodes []*Node) string {
+func ToStrings(nodes []Node) string {
 	nodeStr := ""
 	first := true
 	for _, node := range nodes {
-		if node != nil {
+		if &node != nil {
 			if !first {
 				nodeStr += " "
 			}

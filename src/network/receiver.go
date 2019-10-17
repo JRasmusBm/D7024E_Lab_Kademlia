@@ -150,11 +150,12 @@ func (receiver RealReceiver) PingReply(msg Message, conn io.ReadWriter) {
 func (receiver RealReceiver) FindNodeReply(msg Message, conn io.ReadWriter) {
 	findNodeMsg := msg.Msg.(FindNodeMsg)
 	target, _ := hashing.ToKademliaID(findNodeMsg.ID)
-	closest_nodes_ch := make(chan []*nodeutils.Node)
+	closest_nodes_ch := make(chan []nodeutils.Node)
 	receiver.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: target, Count: constants.CLOSESTNODES, Resp: closest_nodes_ch}
 	closest_nodes := <-closest_nodes_ch
+	fmt.Printf("\nClosest nodes: %#v\n", closest_nodes)
 	for _, node := range closest_nodes {
-		receiver.AddNode <- nodeutils.AddNodeOp{AddedNode: *node}
+		receiver.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
 	}
 
 	response := nodeutils.ToStrings(closest_nodes)
@@ -168,14 +169,14 @@ func (receiver RealReceiver) FindValueReply(msg Message, conn io.ReadWriter) {
 
 	ch := make(chan string)
 	errCh := make(chan error)
-	(*receiver.Storage).Read(key.String(), ch, errCh)
+	go (*receiver.Storage).Read(key.String(), ch, errCh)
 
 	encoder := json.NewEncoder(conn)
 	select {
 	case content := <-ch:
 		encoder.Encode(FindValueRespMsg{Content: content, Nodes: ""})
 	case <-errCh:
-		resp := make(chan []*nodeutils.Node)
+		resp := make(chan []nodeutils.Node)
 		receiver.FindClosestNodes <- nodeutils.FindClosestNodesOp{
 			Target: key,
 			Count:  constants.CLOSESTNODES,
@@ -190,6 +191,7 @@ func (receiver RealReceiver) FindValueReply(msg Message, conn io.ReadWriter) {
 }
 
 func (receiver RealReceiver) StoreReply(msg Message, conn io.ReadWriter) {
+	fmt.Printf("\n\nSTORE\n\n")
 	storeMsg := msg.Msg.(StoreMsg)
 	kid := hashing.NewKademliaID(storeMsg.Data)
 	key := kid.String()

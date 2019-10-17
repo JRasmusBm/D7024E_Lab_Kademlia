@@ -70,7 +70,7 @@ func (r *RealServer) CommandHandler(parsedMessage []string) string {
 		return fmt.Sprintf("Stored at: %v on %v nodes.;", key.String(), sent)
 	} else if strings.TrimSpace(parsedMessage[0]) == "ping" {
 		node := nodeutils.Node{IP: strings.TrimSpace(parsedMessage[1])}
-		ok := r.api.Ping(&node)
+		ok := r.api.Ping(node)
 		return "Online: " + strconv.FormatBool(ok) + ";"
 	} else if strings.TrimSpace(parsedMessage[0]) == "connect" {
 		return "ok;" + supported_commands()

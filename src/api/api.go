@@ -2,7 +2,6 @@ package api
 
 import (
 	"network"
-	"utils/constants"
 	hashing "utils/hashing"
 	nodeutils "utils/node"
 )
@@ -11,7 +10,7 @@ type API struct {
 	Sender network.Sender
 }
 
-func (api API) Ping(node *nodeutils.Node) bool {
+func (api API) Ping(node nodeutils.Node) bool {
 	ch := make(chan bool)
 	errCh := make(chan error)
 
@@ -34,7 +33,7 @@ func (api API) Store(content string) (*hashing.KademliaID, int) {
 	return key, sent
 }
 
-func (api API) FindNode(id *hashing.KademliaID) ([constants.CLOSESTNODES]*nodeutils.Node, error) {
+func (api API) FindNode(id *hashing.KademliaID) ([]nodeutils.Node, error) {
 	return api.Sender.LookUp(id), nil
 }
 

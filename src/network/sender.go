@@ -16,13 +16,13 @@ type Dialer interface {
 }
 
 type Sender interface {
-	Dial(node *nodeutils.Node) (io.ReadWriter, error)
-	Ping(node *nodeutils.Node, ch chan bool, errCh chan error)
+	Dial(node nodeutils.Node) (io.ReadWriter, error)
+	Ping(node nodeutils.Node, ch chan bool, errCh chan error)
 	Store(content string, ch chan int)
-	FindNode(id *hashing.KademliaID, node *nodeutils.Node, ch chan []nodeutils.Node, errCh chan error)
-	FindValue(node *nodeutils.Node, key *hashing.KademliaID, successCh chan string, closerCh chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error)
+	FindNode(id *hashing.KademliaID, node nodeutils.Node, ch chan []nodeutils.Node, errCh chan error)
+	FindValue(node nodeutils.Node, key *hashing.KademliaID, successCh chan string, closerCh chan [constants.CLOSESTNODES]nodeutils.Node, errCh chan error)
 	Join(ip string, ch chan bool, errCh chan error)
-	LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]*nodeutils.Node
+	LookUp(id *hashing.KademliaID) []nodeutils.Node
 	LookUpValue(key *hashing.KademliaID) string
 }
 
@@ -39,12 +39,12 @@ type queriedCandidates struct {
 	nodes []nodeutils.Node
 }
 
-func (sender RealSender) Dial(node *nodeutils.Node) (io.ReadWriter, error) {
+func (sender RealSender) Dial(node nodeutils.Node) (io.ReadWriter, error) {
 	return (*sender.Dialer).DialIP(node.IP)
 }
 
-func (sender RealSender) LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]*nodeutils.Node {
-	resp := make(chan []*nodeutils.Node)
+func (sender RealSender) LookUp(id *hashing.KademliaID) []nodeutils.Node {
+	resp := make(chan []nodeutils.Node)
 	sender.FindClosestNodes <- nodeutils.FindClosestNodesOp{Target: id, Count: constants.CONCURRENCY_PARAM, Resp: resp}
 
 	askNodes := <-resp
@@ -58,7 +58,7 @@ func (sender RealSender) LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]
 
 	for _, node := range askNodes {
 		wg.Add(1)
-		go sender.recursiveLookup(id, *node, &candidates, &queriedNodes, &wg)
+		go sender.recursiveLookup(id, node, &candidates, &queriedNodes, &wg)
 	}
 
 	// Wait for each goroutine to finish
@@ -66,7 +66,7 @@ func (sender RealSender) LookUp(id *hashing.KademliaID) [constants.CLOSESTNODES]
 	// fmt.Printf("%v\n", candidates.GetNodes(constants.CLOSESTNODES))
 
 	fmt.Printf("\n LookUp, Candidate Nodes: %v\n", candidates.Nodes)
-	return candidates.GetNodePointers(constants.CLOSESTNODES)
+	return candidates.GetNodes(constants.CLOSESTNODES)
 }
 
 func (sender RealSender) recursiveLookup(id *hashing.KademliaID, node nodeutils.Node, candidates *nodeutils.NodeCandidates, queriedNodes *queriedCandidates, wg *sync.WaitGroup) {
@@ -74,7 +74,7 @@ func (sender RealSender) recursiveLookup(id *hashing.KademliaID, node nodeutils.
 
 	ch := make(chan []nodeutils.Node)
 	errCh := make(chan error)
-	go sender.FindNode(id, &node, ch, errCh)
+	go sender.FindNode(id, node, ch, errCh)
 	select {
 	case nodes := <-ch:
 		// Calculate distance from id for each node, add to candidates and sort.
@@ -95,8 +95,9 @@ func (sender RealSender) recursiveLookup(id *hashing.KademliaID, node nodeutils.
 		candidates.Append(uniqueNodes)
 		candidates.Sort()
 
-	case <-errCh:
+	case err := <- errCh:
 		// Connection to node failed, do nothing.
+		fmt.Printf("ALERT! Error in FIND_NODE: %s", err.Error())
 	}
 
 	queriedNodes.Lock()
@@ -116,7 +117,7 @@ func (sender RealSender) recursiveLookup(id *hashing.KademliaID, node nodeutils.
 	}
 }
 
-func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool, errCh chan error) {
+func (sender RealSender) Ping(node nodeutils.Node, ch chan bool, errCh chan error) {
 	conn, err := sender.Dial(node)
 	if err != nil {
 		errCh <- err
@@ -140,22 +141,23 @@ func (sender RealSender) Ping(node *nodeutils.Node, ch chan bool, errCh chan err
 		errCh <- err
 	}
 
-	if node != nil {
-		sender.AddNode <- nodeutils.AddNodeOp{AddedNode: *node}
+	if &node != nil {
+		sender.AddNode <- nodeutils.AddNodeOp{AddedNode: node}
 	}
 	ch <- (msg.Msg == "PONG")
 }
 
 func (sender RealSender) Store(content string, ch chan int) {
+	fmt.Printf("\nSENDING STORE!\n")
 	var conn io.ReadWriter
 	var err error
 	sent := 0
 	id := hashing.NewKademliaID(content)
 	fmt.Printf("\nID: %v\n", id.String())
 	nodes := sender.LookUp(id)
-	fmt.Printf("\nNodes: %v\n", nodes)
+	fmt.Printf("\n(STORE)Nodes: %v\n", nodes)
 	for _, node := range nodes {
-		if node == nil {
+		if &node == nil {
 			continue
 		}
 
@@ -171,7 +173,7 @@ func (sender RealSender) Store(content string, ch chan int) {
 	ch <- sent
 }
 
-func (sender RealSender) FindNode(id *hashing.KademliaID, node *nodeutils.Node, ch chan []nodeutils.Node, errCh chan error) {
+func (sender RealSender) FindNode(id *hashing.KademliaID, node nodeutils.Node, ch chan []nodeutils.Node, errCh chan error) {
 	// fmt.Printf("Finding Node %s", node.ID.String())
 
 	conn, err := sender.Dial(node)
@@ -212,7 +214,7 @@ func (sender RealSender) FindNode(id *hashing.KademliaID, node *nodeutils.Node, 
 	ch <- nodes
 }
 
-func (sender RealSender) FindValue(node *nodeutils.Node, key *hashing.KademliaID, successCh chan string, closerCh chan [constants.CLOSESTNODES]*nodeutils.Node, errCh chan error) {
+func (sender RealSender) FindValue(node nodeutils.Node, key *hashing.KademliaID, successCh chan string, closerCh chan [constants.CLOSESTNODES]nodeutils.Node, errCh chan error) {
 	readCh := make(chan string)
 	readErrCh := make(chan error)
 	go (*sender.Storage).Read(key.String(), readCh, readErrCh)
@@ -250,9 +252,9 @@ func (sender RealSender) FindValue(node *nodeutils.Node, key *hashing.KademliaID
 
 	if msg.Content == "" {
 		nodes, _ := nodeutils.FromStrings(msg.Nodes)
-		var result [constants.CLOSESTNODES]*nodeutils.Node
+		var result [constants.CLOSESTNODES]nodeutils.Node
 		for i, node := range nodes {
-			result[i] = &node
+			result[i] = node
 		}
 		closerCh <- result
 	} else {
@@ -272,12 +274,12 @@ func (sender RealSender) LookUpValue(key *hashing.KademliaID) string {
 	// Therefore we should probably make sure it only spawns alpha goroutines in a similar fashion
 	// to how it's done in recursiveLookup.
 	for _, node := range kNodes {
-		if node != nil {
+		if &node != nil {
 			wg.Add(1)
-			go func(n *nodeutils.Node) {
+			go func(n nodeutils.Node) {
 				defer wg.Done()
 				successCh := make(chan string)
-				closerCh := make(chan [constants.CLOSESTNODES]*nodeutils.Node)
+				closerCh := make(chan [constants.CLOSESTNODES]nodeutils.Node)
 				errCh := make(chan error)
 
 				go sender.FindValue(n, key, successCh, closerCh, errCh)
