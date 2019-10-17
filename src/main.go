@@ -27,8 +27,8 @@ func main() {
 
 	listener, _ := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, constants.KADEMLIA_PORT))
 	var realListener network.Listener = &network.RealListener{Listener: listener}
-	addNode := make(chan nodeutils.AddNodeOp)
-	findClosestNodes := make(chan nodeutils.FindClosestNodesOp)
+	addNode := make(chan nodeutils.AddNodeOp, 1000)
+	findClosestNodes := make(chan nodeutils.FindClosestNodesOp, 1000)
 	sender := network.RealSender{
 		AddNode:          addNode,
 		FindClosestNodes: findClosestNodes,
